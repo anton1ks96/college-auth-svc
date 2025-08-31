@@ -1,5 +1,7 @@
 package domain
 
-type Student struct {
-	Username string `json:"username"`
+type User struct {
+	ID       string `json:"id" bson:"_id"`
+	Username string `json:"username" bson:"username"`
+	Role     string `json:"role" bson:"role"`
 }
