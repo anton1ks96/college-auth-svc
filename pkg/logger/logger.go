@@ -1,9 +1,7 @@
 package logger
 
 import (
-	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -16,9 +14,6 @@ func init() {
 		Out:        os.Stdout,
 		TimeFormat: time.DateTime,
 		NoColor:    false,
-		FormatLevel: func(i interface{}) string {
-			return strings.ToUpper(fmt.Sprintf("| %-5s|", i))
-		},
 	}
 
 	newLogger = zerolog.New(output).With().Timestamp().Logger()

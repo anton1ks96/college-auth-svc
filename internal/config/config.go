@@ -2,38 +2,57 @@ package config
 
 import (
 	"os"
+	"time"
 
+	"github.com/anton1ks96/college-auth-svc/internal/domain"
 	"github.com/anton1ks96/college-auth-svc/pkg/logger"
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
-type Config struct {
+type (
+	Config struct {
+		Server Server
+		Mongo  MongoConfig
+		JWT    JWTConfig
+		Auth   AuthConfig
+	}
 	Server struct {
 		Port string `mapstructure:"port"`
-	} `mapstructure:"server"`
+	}
 
-	MongoDB struct {
-		URI    string `mapstructure:"uri"`
+	MongoConfig struct {
+		URI    string
 		DBName string `mapstructure:"dbName"`
-	} `mapstructure:"mongodb"`
-}
+	}
+
+	JWTConfig struct {
+		AccessTokenTTL  time.Duration `mapstructure:"accessTokenTTL"`
+		RefreshTokenTTL time.Duration `mapstructure:"refreshTokenTTL"`
+		SigningKey      string
+	}
+
+	AuthConfig struct {
+		JWT          JWTConfig
+		PasswordSalt string
+	}
+)
 
 func Init() (*Config, error) {
 	err := godotenv.Load()
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatal(domain.ErrEnvFileLoadFailed)
 	}
 
 	if err := parseConfigFile("./configs"); err != nil {
-		logger.Error(err)
-		return nil, err
+		logger.Error(domain.ErrConfigParsingFailed)
+		return nil, domain.ErrConfigParsingFailed
 	}
 
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {
-		logger.Error(err)
-		return nil, err
+		logger.Error(domain.ErrConfigUnmarshalFailed)
+		return nil, domain.ErrConfigUnmarshalFailed
 	}
 
 	setFromEnv(&cfg)
@@ -50,5 +69,7 @@ func parseConfigFile(folder string) error {
 }
 
 func setFromEnv(cfg *Config) {
-	cfg.MongoDB.URI = os.Getenv("MONGODB_URI")
+	cfg.Mongo.URI = os.Getenv("MONGODB_URI")
+	cfg.JWT.SigningKey = os.Getenv("SIGNING_KEY")
+	cfg.Auth.PasswordSalt = os.Getenv("PASSWORD_SALT")
 }
