@@ -14,6 +14,10 @@ func Run() {
 		return
 	}
 
+	// Initialize JWT token manager
+	//tokenManager := auth.NewManager(cfg)
+
+	// Initialize MongoDB
 	//client, err := mongodb.NewClient(cfg.Mongo.URI)
 	//if err != nil {
 	//	logger.Error(err)
