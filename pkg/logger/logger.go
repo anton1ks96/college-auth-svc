@@ -7,31 +7,40 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var newLogger = zerolog.New(os.Stdout).With().Timestamp().Logger()
+var Logger zerolog.Logger
 
 func init() {
-	output := zerolog.ConsoleWriter{
+	consoleWriter := zerolog.ConsoleWriter{
 		Out:        os.Stdout,
 		TimeFormat: time.DateTime,
 		NoColor:    false,
 	}
 
-	newLogger = zerolog.New(output).With().Timestamp().Logger()
+	Logger = zerolog.New(consoleWriter).
+		With().
+		Timestamp().
+		Caller().
+		Logger()
+
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 }
 
 func Debug(msg string) {
-	newLogger.Debug().Msg(msg)
+	Logger.Debug().Msg(msg)
 }
 
 func Info(msg string) {
-	newLogger.Info().Msg(msg)
+	Logger.Info().Msg(msg)
 }
 
 func Fatal(err error) {
-	newLogger.Fatal().Err(err)
+	Logger.Fatal().Err(err).Msg("Fatal error occurred")
 }
 
 func Error(err error) {
-	newLogger.Error().Err(err)
+	Logger.Error().Err(err).Msg("Error occurred")
+}
+
+func Warn(msg string) {
+	Logger.Warn().Msg(msg)
 }
