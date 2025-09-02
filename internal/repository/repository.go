@@ -7,7 +7,7 @@ import (
 )
 
 type UserRepository interface {
-	Authenticate(ctx context.Context, username, password string) (*domain.User, error)
+	Authentication(ctx context.Context, username, password string) (*domain.User, error)
 	//GetByUsername(ctx context.Context, username string) (*domain.User, error)
 	//List(ctx context.Context, filters UserFilters) ([]*User, error)
 }

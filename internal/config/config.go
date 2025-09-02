@@ -15,9 +15,17 @@ type (
 		Server Server
 		Mongo  MongoConfig
 		JWT    JWTConfig
+		LDAP   LDAPConfig
 	}
 	Server struct {
 		Port string `mapstructure:"port"`
+	}
+
+	LDAPConfig struct {
+		URL          string
+		BaseDN       string `mapstructure:"baseDn"`
+		BindPassword string
+		BindUsername string
 	}
 
 	MongoConfig struct {
@@ -68,12 +76,24 @@ func parseConfigFile(folder string) error {
 func setFromEnv(cfg *Config) error {
 	cfg.Mongo.URI = os.Getenv("MONGODB_URI")
 	cfg.JWT.SigningKey = os.Getenv("SIGNING_KEY")
+	cfg.LDAP.URL = os.Getenv("LDAP_URL")
+	cfg.LDAP.BindPassword = os.Getenv("BIND_PASSWORD")
+	cfg.LDAP.BindUsername = os.Getenv("BIND_USERNAME")
 
 	if cfg.Mongo.URI == "" {
 		return errors.New("MONGODB_URI environment variable is required")
 	}
 	if cfg.JWT.SigningKey == "" {
 		return errors.New("SIGNING_KEY environment variable is required")
+	}
+	if cfg.LDAP.URL == "" {
+		return errors.New("LDAP_URL environment variable is required")
+	}
+	if cfg.LDAP.BindPassword == "" {
+		return errors.New("BIND_PASSWORD environment variable is required")
+	}
+	if cfg.LDAP.BindUsername == "" {
+		return errors.New("BIND_USERNAME environment variable is required")
 	}
 
 	return nil

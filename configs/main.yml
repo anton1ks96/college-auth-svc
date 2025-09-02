@@ -7,3 +7,7 @@ mongodb:
 jwt:
   accessTokenTTL: 1h
   refreshTokenTTL: 720h
+
+ldap:
+  baseDn: "ou=groups,dc=it-college,dc=ru"
+  timeout: 5min
