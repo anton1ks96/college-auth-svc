@@ -1,8 +1,8 @@
-package handlers
+package v1
 
 import "github.com/gin-gonic/gin"
 
-func initAPIRoutes(api *gin.RouterGroup) {
+func InitAPIRoutes(api *gin.RouterGroup) {
 	api = api.Group("/api")
 	{
 		api.GET("/ping", func(c *gin.Context) {

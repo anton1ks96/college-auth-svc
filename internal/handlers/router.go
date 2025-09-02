@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/anton1ks96/college-auth-svc/internal/handlers/v1"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,5 +13,5 @@ func NewRouter() *gin.Engine {
 }
 
 func InitAPI(r *gin.Engine) {
-	initAPIRoutes(r.Group("/"))
+	v1.InitAPIRoutes(r.Group("/"))
 }
