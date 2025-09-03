@@ -6,11 +6,6 @@ import (
 	"github.com/anton1ks96/college-auth-svc/internal/domain"
 )
 
-type Repositories struct {
-	UserRepo    UserRepository
-	SessionRepo SessionRepository
-}
-
 // UserRepository handles user authentication and data retrieval from LDAP
 type UserRepository interface {
 	Authentication(ctx context.Context, username, password string) (*domain.User, error)

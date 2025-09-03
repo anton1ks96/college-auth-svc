@@ -40,11 +40,6 @@ type SessionService interface {
 	RevokeSession(ctx context.Context, jti string) error
 }
 
-type Repositories struct {
-	userRepo    repository.UserRepository
-	sessionRepo repository.SessionRepository
-}
-
 // Services contains all business logic services
 type Services struct {
 	Auth    AuthService
@@ -52,9 +47,14 @@ type Services struct {
 	Session SessionService
 }
 
+type Repositories struct {
+	UserRepo    repository.UserRepository
+	SessionRepo repository.SessionRepository
+}
+
 // Deps contains external dependencies needed to initialize services
 type Deps struct {
-	Repos        *repository.Repositories
+	Repos        *Repositories
 	TokenManager *auth.Manager
 	Config       *config.Config
 }
