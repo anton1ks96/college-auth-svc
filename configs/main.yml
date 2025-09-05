@@ -7,4 +7,8 @@ jwt:
 
 ldap:
   baseDn: "ou=groups,dc=it-college,dc=ru"
-  timeout: 5min
+
+limiter:
+  rps: 4
+  burst: 10
+  ttl: 10m

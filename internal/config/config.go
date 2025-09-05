@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/anton1ks96/college-auth-svc/pkg/logger"
 	"github.com/joho/godotenv"
@@ -12,18 +13,25 @@ import (
 
 type (
 	Config struct {
-		Server Server
-		Mongo  MongoConfig
-		JWT    JWTConfig
-		LDAP   LDAPConfig
+		Server  Server
+		Limiter LimiterConfig
+		Mongo   MongoConfig
+		JWT     JWTConfig
+		LDAP    LDAPConfig
 	}
 	Server struct {
-		Port string `mapstructure:"port"`
+		Port string
+	}
+
+	LimiterConfig struct {
+		RPS   int
+		Burst int
+		TTL   time.Duration
 	}
 
 	LDAPConfig struct {
 		URL          string
-		BaseDN       string `mapstructure:"baseDn"`
+		BaseDN       string
 		BindPassword string
 		BindUsername string
 	}
@@ -35,8 +43,8 @@ type (
 	}
 
 	JWTConfig struct {
-		AccessTokenTTL  string `mapstructure:"accessTokenTTL"`
-		RefreshTokenTTL string `mapstructure:"refreshTokenTTL"`
+		AccessTokenTTL  string
+		RefreshTokenTTL string
 		SigningKey      string
 	}
 )
