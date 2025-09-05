@@ -1,9 +1,6 @@
 server:
   port: :8080
 
-mongodb:
-  dbName: College-AI-Platform
-
 jwt:
   accessTokenTTL: 1h
   refreshTokenTTL: 720h

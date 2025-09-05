@@ -23,11 +23,3 @@ func NewSessionsRepository(cfg *config.Config, db *mongo.Client) *SessionsReposi
 func (s *SessionsRepository) SaveRefreshToken(ctx context.Context, session *domain.RefreshSession) error {
 	return nil
 }
-
-func (s *SessionsRepository) GetRefreshToken(ctx context.Context, tokenHash string) (*domain.RefreshSession, error) {
-	return nil, nil
-}
-
-func (s *SessionsRepository) RevokeRefreshToken(ctx context.Context, tokenHash string) error {
-	return nil
-}

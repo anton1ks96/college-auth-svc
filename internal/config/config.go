@@ -29,8 +29,9 @@ type (
 	}
 
 	MongoConfig struct {
-		URI    string
-		DBName string `mapstructure:"dbName"`
+		URI      string
+		DBName   string
+		CollName string
 	}
 
 	JWTConfig struct {
@@ -75,6 +76,8 @@ func parseConfigFile(folder string) error {
 
 func setFromEnv(cfg *Config) error {
 	cfg.Mongo.URI = os.Getenv("MONGODB_URI")
+	cfg.Mongo.DBName = os.Getenv("MONGODB_DBNAME")
+	cfg.Mongo.CollName = os.Getenv("MONGODB_CNAME")
 	cfg.JWT.SigningKey = os.Getenv("SIGNING_KEY")
 	cfg.LDAP.URL = os.Getenv("LDAP_URL")
 	cfg.LDAP.BindPassword = os.Getenv("BIND_PASSWORD")
