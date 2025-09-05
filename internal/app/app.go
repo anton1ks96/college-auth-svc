@@ -24,14 +24,25 @@ func Run() {
 	// Initialize JWT token manager
 	//tokenManager := auth.NewManager(cfg)
 
-	// Initialize MongoDB
-	//client, err := mongodb.NewClient()
+	//Initialize MongoDB
+	//db, err := mongodb.NewClient(cfg)
 	//if err != nil {
 	//	logger.Error(err)
 	//	return
 	//}
 	//
-	//db := client.Database(cfg.Mongo.DBName)
+	//session := domain.RefreshSession{
+	//	JTI:       "test",
+	//	Username:  "test",
+	//	ExpiresAt: time.Now(),
+	//	CreatedAt: time.Now(),
+	//}
+	//
+	//sessionRepo := mg.NewSessionsRepository(cfg, db)
+	//if err := sessionRepo.SaveRefreshToken(context.TODO(), session); err != nil {
+	//	logger.Error(err)
+	//	return
+	//}
 
 	// Router and server initialization
 	router := handlers.NewRouter()
