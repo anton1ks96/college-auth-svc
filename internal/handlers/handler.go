@@ -21,6 +21,11 @@ func NewHandler(services *service.Services, manager auth.Manager) *Handler {
 
 func (h *Handler) Init(cfg *config.Config) *gin.Engine {
 	router := gin.Default()
-	router.Use(corsMiddleware)
+
+	router.Use(
+		gin.Recovery(),
+		gin.Logger(),
+		corsMiddleware,
+	)
 	return router
 }

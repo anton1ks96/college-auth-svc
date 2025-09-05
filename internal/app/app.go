@@ -1,8 +1,6 @@
 package app
 
 import (
-	"net/http"
-
 	"github.com/anton1ks96/college-auth-svc/internal/config"
 	"github.com/anton1ks96/college-auth-svc/internal/handlers"
 	"github.com/anton1ks96/college-auth-svc/pkg/auth"
@@ -48,14 +46,5 @@ func Run() {
 	//}
 	// Router and server initialization
 	tokenManager := auth.NewManager(cfg)
-	handler := handlers.NewHandler(nil, *tokenManager)
-	r := handler.Init(cfg)
-	s := &http.Server{
-		Addr:              ":8080",
-		Handler:           handler,
-		ReadTimeout:       0,
-		ReadHeaderTimeout: 0,
-		WriteTimeout:      0,
-		MaxHeaderBytes:    0,
-	}
+	 := handlers.NewHandler(nil, *tokenManager)
 }

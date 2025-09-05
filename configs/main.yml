@@ -1,5 +1,8 @@
 server:
-  port: :8080
+  port: 8000
+  maxHeaderBytes: 1
+  readTimeout: 7s
+  writeTimeout: 7s
 
 jwt:
   accessTokenTTL: 1h

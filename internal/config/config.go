@@ -20,7 +20,10 @@ type (
 		LDAP    LDAPConfig
 	}
 	Server struct {
-		Port string
+		Port           string
+		ReadTimeout    time.Duration
+		WriteTimeout   time.Duration
+		MaxHeaderBytes int
 	}
 
 	LimiterConfig struct {
