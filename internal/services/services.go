@@ -19,22 +19,21 @@ type Tokens struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-// AuthService handles user authentication, token generation and validation
-type AuthService interface {
+// Auth handles user authentication, token generation and validation
+type Auth interface {
 	SignIn(ctx context.Context, input SignInInput) (Tokens, error)
 	SignOut(ctx context.Context, refreshToken string) error
 	RefreshTokens(ctx context.Context, refreshToken string) (Tokens, error)
 	ValidateAccessToken(ctx context.Context, token string) (*domain.User, error)
 }
 
-// UserService manages user data retrieval and operations
-type UserService interface {
-	GetByID(ctx context.Context, userID string) (*domain.User, error)
+// Users manages user data retrieval and operations
+type Users interface {
 	GetByUsername(ctx context.Context, username string) (*domain.User, error)
 }
 
-// SessionService manages refresh token sessions and their lifecycle
-type SessionService interface {
+// Sessions manages refresh token sessions and their lifecycle
+type Sessions interface {
 	CreateSession(ctx context.Context, session *domain.RefreshSession) error
 	GetSession(ctx context.Context, jti string) (*domain.RefreshSession, error)
 	RevokeSession(ctx context.Context, jti string) error
@@ -42,9 +41,9 @@ type SessionService interface {
 
 // Services contains all business logic services
 type Services struct {
-	Auth    AuthService
-	User    UserService
-	Session SessionService
+	Auth    Auth
+	User    Users
+	Session Sessions
 }
 
 type Repositories struct {

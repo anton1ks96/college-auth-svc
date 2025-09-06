@@ -88,7 +88,7 @@ func (u *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 		5,
 		false,
 		fmt.Sprintf("(uid=%s)", ldap.EscapeFilter(username)),
-		[]string{"uid", "cn", "mail"},
+		[]string{"uid", "cn", "mail", "employeeType"},
 		nil,
 	)
 

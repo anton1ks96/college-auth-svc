@@ -27,5 +27,6 @@ func (h *Handler) Init(cfg *config.Config) *gin.Engine {
 		gin.Logger(),
 		corsMiddleware,
 	)
+
 	return router
 }
