@@ -2,51 +2,103 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"time"
 
 	"github.com/anton1ks96/college-auth-svc/internal/domain"
-	"github.com/anton1ks96/college-auth-svc/internal/repository"
+	"github.com/anton1ks96/college-auth-svc/pkg/auth"
 	"github.com/anton1ks96/college-auth-svc/pkg/logger"
 )
 
 type UserService struct {
-	repo repository.UserLDAPRepository
+	tokenManager *auth.Manager
+	repos        Repositories
+
+	accessTokenTTL  time.Duration
+	refreshTokenTTL time.Duration
 }
 
-func NewUserService(repo repository.UserLDAPRepository) *UserService {
+func NewUserService(tm auth.Manager, repos Repositories, accessTTL time.Duration, refreshTTL time.Duration) *UserService {
 	return &UserService{
-		repo: repo,
+		tokenManager:    &tm,
+		repos:           repos,
+		accessTokenTTL:  accessTTL,
+		refreshTokenTTL: refreshTTL,
 	}
 }
 
-func (s *UserService) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
-	if username == "" {
-		return nil, errors.New("username cannot be empty")
+func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *domain.User, error) {
+	if input.Username == "" {
+		logger.Error(fmt.Errorf("empty login username field"))
 	}
 
-	user, err := s.repo.GetByUsername(ctx, username)
+	if input.Password == "" {
+		logger.Error(fmt.Errorf("empty login password field"))
+	}
+
+	if err := u.repos.UserRepo.Authentication(ctx, input.Username, input.Password); err != nil {
+		logger.Error(fmt.Errorf("authentication failed for user %s: %w", input.Username, err))
+		return Tokens{}, nil, fmt.Errorf("authentication failed: %w", err)
+	}
+
+	user, err := u.repos.UserRepo.GetByUsername(ctx, input.Username)
 	if err != nil {
-		logger.Error(err)
-		return nil, fmt.Errorf("failed to get user by username: %w", err)
+		logger.Error(fmt.Errorf("find user data failed for user %s: %w", input.Username, err))
+		return Tokens{}, nil, fmt.Errorf("find user data failed: %w", err)
 	}
 
-	if user.Username == "" {
-		logger.Error(fmt.Errorf("user has empty username field"))
-		return nil, errors.New("user has empty username field")
+	accessToken, err := u.tokenManager.NewAccessToken(input.Username)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to generate access token for user %s: %w", input.Username, err))
+		return Tokens{}, nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	if user.ID == "" {
-		logger.Error(fmt.Errorf("user has empty ID field"))
-		return nil, errors.New("user has empty ID field")
+	refreshToken, err := u.tokenManager.NewRefreshToken(input.Username)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to generate refresh token for user %s: %w", input.Username, err))
+		return Tokens{}, nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	if user.Role == "" {
-		logger.Error(fmt.Errorf("user has empty role field"))
-		return nil, errors.New("user has empty role field")
+	jti, err := u.tokenManager.ExtractJTI(refreshToken)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to extract jti from token for user %s: %w", input.Username, err))
+		return Tokens{}, nil, fmt.Errorf("failed to extract jti: %w", err)
 	}
 
-	logger.Info(fmt.Sprintf("Successfully get user: %s with role: %s", user.Username, user.Role))
+	session := domain.RefreshSession{
+		JTI:       jti,
+		Username:  input.Username,
+		ExpiresAt: time.Now().Add(u.refreshTokenTTL),
+		CreatedAt: time.Now(),
+	}
 
-	return user, nil
+	if err := u.repos.SessionRepo.SaveRefreshToken(ctx, &session); err != nil {
+		logger.Error(fmt.Errorf("failed to save refresh session for user %s: %w", input.Username, err))
+		return Tokens{}, nil, fmt.Errorf("failed to save refresh session: %w", err)
+	}
+
+	return Tokens{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, user, nil
 }
+
+//func (u *UserService) SignOut(ctx context.Context, refreshToken string) error {
+//	return nil
+//}
+//
+//func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (Tokens, error) {
+//	return Tokens{
+//		AccessToken:  "",
+//		RefreshToken: "",
+//	}, nil
+//}
+//
+//func (u *UserService) ValidateAccessToken(ctx context.Context, token string) (*domain.User, error) {
+//	return nil, nil
+//}
+//
+//func (u *UserService) GetInfo(ctx context.Context, input SignInInput) (domain.User, error) {
+//	//TODO implement me
+//	panic("implement me")
+//}
