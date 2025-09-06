@@ -47,7 +47,7 @@ type Services struct {
 }
 
 type Repositories struct {
-	UserRepo    repository.UserRepository
+	UserRepo    repository.UserLDAPRepository
 	SessionRepo repository.SessionRepository
 }
 
@@ -61,7 +61,7 @@ type Deps struct {
 func NewServices(deps Deps) *Services {
 	return &Services{
 		Auth:    nil,
-		User:    nil,
+		User:    NewUserService(deps.Repos.UserRepo),
 		Session: nil,
 	}
 }

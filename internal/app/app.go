@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/anton1ks96/college-auth-svc/internal/config"
-	"github.com/anton1ks96/college-auth-svc/internal/repository/ldap"
+	"github.com/anton1ks96/college-auth-svc/internal/repository"
 	"github.com/anton1ks96/college-auth-svc/pkg/logger"
 )
 
@@ -18,7 +18,7 @@ func Run() {
 
 	ctx := context.Background()
 
-	userRepo := ldap.NewUserRepository(cfg)
+	userRepo := repository.NewUserRepository(cfg)
 	_, err = userRepo.GetByUsername(ctx, cfg.LDAP.BindUsername)
 	if err != nil {
 		logger.Error(err)

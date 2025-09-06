@@ -1,12 +1,14 @@
-package mongodb
+package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/anton1ks96/college-auth-svc/internal/config"
 	"github.com/anton1ks96/college-auth-svc/internal/domain"
 	"github.com/anton1ks96/college-auth-svc/pkg/logger"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -22,7 +24,7 @@ func NewSessionsRepository(cfg *config.Config, db *mongo.Client) *SessionsReposi
 	}
 }
 
-func (s *SessionsRepository) SaveRefreshToken(ctx context.Context, session domain.RefreshSession) error {
+func (s *SessionsRepository) SaveRefreshToken(ctx context.Context, session *domain.RefreshSession) error {
 	coll := s.db.Database(s.cfg.Mongo.DBName).Collection(s.cfg.Mongo.CollName)
 
 	sendSession := domain.RefreshSession{
@@ -42,9 +44,36 @@ func (s *SessionsRepository) SaveRefreshToken(ctx context.Context, session domai
 }
 
 func (s *SessionsRepository) GetRefreshToken(ctx context.Context, jti string) (*domain.RefreshSession, error) {
-	return nil, nil
+	coll := s.db.Database(s.cfg.Mongo.DBName).Collection(s.cfg.Mongo.CollName)
+
+	var session domain.RefreshSession
+
+	filter := bson.M{"jti": jti}
+
+	err := coll.FindOne(ctx, filter).Decode(&session)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			logger.Error(err)
+			return nil, fmt.Errorf("failed to find session: %w", err)
+		}
+		return nil, err
+	}
+
+	return &session, nil
 }
 
 func (s *SessionsRepository) RevokeRefreshToken(ctx context.Context, jti string) error {
+	coll := s.db.Database(s.cfg.Mongo.DBName).Collection(s.cfg.Mongo.CollName)
+	filter := bson.M{"jti": jti}
+
+	_, err := coll.DeleteOne(ctx, filter)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			logger.Error(err)
+			return fmt.Errorf("failed to find session: %w", err)
+		}
+		return err
+	}
+
 	return nil
 }

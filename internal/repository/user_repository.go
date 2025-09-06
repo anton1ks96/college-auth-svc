@@ -1,4 +1,4 @@
-package ldap
+package repository
 
 import (
 	"context"
@@ -79,7 +79,7 @@ func (u *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 		return nil, fmt.Errorf("operation cancelled after bind: %w", ctx.Err())
 	}
 
-	//var user domain.User
+	var user domain.User
 	userReq := ldap.NewSearchRequest(
 		dn,
 		ldap.ScopeWholeSubtree,
@@ -104,11 +104,12 @@ func (u *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 
 	for _, entry := range sr.Entries {
 		fmt.Printf("DN: %s\n", entry.DN)
-		for _, attr := range entry.Attributes {
-			fmt.Printf("  %s: %v\n", attr.Name, attr.Values)
-		}
-		fmt.Println()
+		user.ID = entry.GetAttributeValue("uid")
+		user.Username = entry.GetAttributeValue("cn")
+		user.Mail = entry.GetAttributeValue("mail")
 	}
 
-	return nil, nil
+	fmt.Println(user)
+
+	return &user, nil
 }
