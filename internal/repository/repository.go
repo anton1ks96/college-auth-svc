@@ -12,8 +12,8 @@ type UserLDAPRepository interface {
 	GetByUsername(ctx context.Context, username string) (*domain.User, error)
 }
 
-// SessionRepository manages refresh tokens and user sessions in MongoDB
-type SessionRepository interface {
+// SessionMongoRepository manages refresh tokens and user sessions in MongoDB
+type SessionMongoRepository interface {
 	SaveRefreshToken(ctx context.Context, session *domain.RefreshSession) error
 	GetRefreshToken(ctx context.Context, jti string) (*domain.RefreshSession, error)
 	RevokeRefreshToken(ctx context.Context, jti string) error

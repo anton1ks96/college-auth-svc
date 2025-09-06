@@ -36,10 +36,11 @@ func (s *SessionsRepository) SaveRefreshToken(ctx context.Context, session *doma
 
 	_, err := coll.InsertOne(ctx, sendSession)
 	if err != nil {
-		logger.Error(err)
-		return fmt.Errorf("failed to insert refersh session to MongoDB: %w", err)
+		logger.Error(fmt.Errorf("failed to save refresh session for user %s: %w", session.Username, err))
+		return err
 	}
 
+	logger.Debug(fmt.Sprintf("refresh session saved for user %s", session.Username))
 	return nil
 }
 
@@ -47,18 +48,19 @@ func (s *SessionsRepository) GetRefreshToken(ctx context.Context, jti string) (*
 	coll := s.db.Database(s.cfg.Mongo.DBName).Collection(s.cfg.Mongo.CollName)
 
 	var session domain.RefreshSession
-
 	filter := bson.M{"jti": jti}
 
 	err := coll.FindOne(ctx, filter).Decode(&session)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			logger.Error(err)
-			return nil, fmt.Errorf("failed to find session: %w", err)
+			logger.Debug(fmt.Sprintf("refresh session not found for JTI: %s", jti))
+			return nil, err
 		}
+		logger.Error(fmt.Errorf("failed to retrieve refresh session for JTI %s: %w", jti, err))
 		return nil, err
 	}
 
+	logger.Debug(fmt.Sprintf("refresh session retrieved for user %s", session.Username))
 	return &session, nil
 }
 
@@ -68,12 +70,10 @@ func (s *SessionsRepository) RevokeRefreshToken(ctx context.Context, jti string)
 
 	_, err := coll.DeleteOne(ctx, filter)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			logger.Error(err)
-			return fmt.Errorf("failed to find session: %w", err)
-		}
+		logger.Error(fmt.Errorf("failed to revoke refresh session for JTI %s: %w", jti, err))
 		return err
 	}
 
+	logger.Debug(fmt.Sprintf("refresh session revoked for JTI: %s", jti))
 	return nil
 }
