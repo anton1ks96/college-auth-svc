@@ -68,6 +68,8 @@ func (m *Manager) NewRefreshToken(userId string) (string, error) {
 	return tokenString, err
 }
 
+// TODO: refactor extracting fields from token - ExtractClaim(tokenString, claimName string)
+
 func (m *Manager) ExtractJTI(tokenString string) (string, error) {
 	var token, err = jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return []byte(m.cfg.JWT.SigningKey), nil
@@ -81,4 +83,19 @@ func (m *Manager) ExtractJTI(tokenString string) (string, error) {
 	jti := claims["jti"].(string)
 
 	return jti, err
+}
+
+func (m *Manager) ExtractUsername(tokenString string) (string, error) {
+	var token, err = jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+		return []byte(m.cfg.JWT.SigningKey), nil
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+	if err != nil {
+		logger.Error(errors.New("failed to parse token: " + err.Error()))
+		return "", err
+	}
+
+	claims := token.Claims.(jwt.MapClaims)
+	userId := claims["user_id"].(string)
+
+	return userId, err
 }

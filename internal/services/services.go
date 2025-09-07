@@ -19,7 +19,6 @@ type Tokens struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-// User handles user authentication, token generation and validation
 type User interface {
 	SignIn(ctx context.Context, input SignInInput) (Tokens, error)
 	SignOut(ctx context.Context, refreshToken string) error
@@ -28,7 +27,6 @@ type User interface {
 	GetInfo(ctx context.Context, input SignInInput) (domain.User, error)
 }
 
-// Services contains all business logic services
 type Services struct {
 	UserService User
 }
@@ -38,7 +36,6 @@ type Repositories struct {
 	SessionRepo repository.SessionMongoRepository
 }
 
-// Deps contains external dependencies needed to initialize services
 type Deps struct {
 	Repos        *Repositories
 	TokenManager *auth.Manager
