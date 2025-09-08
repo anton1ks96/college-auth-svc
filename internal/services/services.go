@@ -2,11 +2,14 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/anton1ks96/college-auth-svc/internal/config"
 	"github.com/anton1ks96/college-auth-svc/internal/domain"
 	"github.com/anton1ks96/college-auth-svc/internal/repository"
 	"github.com/anton1ks96/college-auth-svc/pkg/auth"
+	"github.com/anton1ks96/college-auth-svc/pkg/logger"
 )
 
 type SignInInput struct {
@@ -43,7 +46,19 @@ type Deps struct {
 }
 
 func NewServices(deps Deps) *Services {
+	accessTTL, err := time.ParseDuration(deps.Config.JWT.AccessTokenTTL)
+	if err != nil {
+		logger.Fatal(fmt.Errorf("invalid access token TTL: %w", err))
+	}
+
+	refreshTTL, err := time.ParseDuration(deps.Config.JWT.RefreshTokenTTL)
+	if err != nil {
+		logger.Fatal(fmt.Errorf("invalid refresh token TTL: %w", err))
+	}
+
+	userService := NewUserService(*deps.TokenManager, *deps.Repos, accessTTL, refreshTTL)
+
 	return &Services{
-		UserService: nil,
+		UserService: userService,
 	}
 }

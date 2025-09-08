@@ -11,9 +11,8 @@ import (
 )
 
 type UserService struct {
-	tokenManager *auth.Manager
-	repos        Repositories
-
+	tokenManager    *auth.Manager
+	repos           Repositories
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
 }
@@ -26,7 +25,6 @@ func NewUserService(tm auth.Manager, repos Repositories, accessTTL time.Duration
 		refreshTokenTTL: refreshTTL,
 	}
 }
-
 func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *domain.User, error) {
 	if input.Username == "" {
 		logger.Error(fmt.Errorf("empty login username field"))
