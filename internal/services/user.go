@@ -124,10 +124,16 @@ func (u *UserService) SignInTest(ctx context.Context, input SignInInput) (Tokens
 		return Tokens{}, nil, fmt.Errorf("failed to save refresh session: %w", err)
 	}
 
+	var user = domain.User{
+		ID:       "123",
+		Username: "qwe",
+		Mail:     "qwe",
+		Role:     "qwe",
+	}
 	return Tokens{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-	}, nil, nil
+	}, &user, nil
 }
 
 func (u *UserService) SignOut(ctx context.Context, refreshToken string) error {
