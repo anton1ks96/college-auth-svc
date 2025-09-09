@@ -12,15 +12,6 @@ import (
 //GET /api/v1/auth/me
 //POST /api/v1/auth/signout
 //POST /api/v1/auth/refresh
-//GET /api/v1/ping
-
-func (h *Handler) initUsersRoutes(api *gin.RouterGroup) {
-	users := api.Group("/user")
-	{
-		users.POST("/signin", h.signIn)
-		users.POST("/testsignin", h.signInTest)
-	}
-}
 
 func (h *Handler) signIn(c *gin.Context) {
 	var loginReq dto.LoginRequest

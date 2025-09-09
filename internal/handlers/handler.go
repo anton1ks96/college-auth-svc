@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"net/http"
-
 	"github.com/anton1ks96/college-auth-svc/internal/config"
 	v1 "github.com/anton1ks96/college-auth-svc/internal/handlers/v1"
 	service "github.com/anton1ks96/college-auth-svc/internal/services"
@@ -38,16 +36,8 @@ func (h *Handler) Init() *gin.Engine {
 	return router
 }
 
-func (h *Handler) ping(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "pong",
-		"version": "v1",
-	})
-}
-
 func (h *Handler) initAPI(router *gin.Engine) {
 	handlerV1 := v1.NewHandler(h.services, h.tokenManager, h.cfg)
 	api := router.Group("/api")
-	router.GET("/ping", h.ping)
 	handlerV1.Init(api)
 }
