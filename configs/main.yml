@@ -7,7 +7,7 @@ server:
 
 # TODO: set longer token TTL
 jwt:
-  accessTokenTTL: 1h
+  accessTokenTTL: 72h
   refreshTokenTTL: 720h
 
 ldap:

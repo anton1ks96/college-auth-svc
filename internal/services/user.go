@@ -83,6 +83,53 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 	}, user, nil
 }
 
+func (u *UserService) SignInTest(ctx context.Context, input SignInInput) (Tokens, *domain.User, error) {
+	if input.Username == "" {
+		logger.Error(fmt.Errorf("empty login username field"))
+		return Tokens{}, nil, fmt.Errorf("empty login username field")
+	}
+
+	if input.Password == "" {
+		logger.Error(fmt.Errorf("empty login password field"))
+		return Tokens{}, nil, fmt.Errorf("empty login password field")
+	}
+
+	accessToken, err := u.tokenManager.NewAccessToken(input.Username)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to generate access token for user %s: %w", input.Username, err))
+		return Tokens{}, nil, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	refreshToken, err := u.tokenManager.NewRefreshToken(input.Username)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to generate refresh token for user %s: %w", input.Username, err))
+		return Tokens{}, nil, fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	jti, err := u.tokenManager.ExtractJTI(refreshToken)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to extract jti from token for user %s: %w", input.Username, err))
+		return Tokens{}, nil, fmt.Errorf("failed to extract jti: %w", err)
+	}
+
+	session := domain.RefreshSession{
+		JTI:       jti,
+		Username:  input.Username,
+		ExpiresAt: time.Now().Add(u.refreshTokenTTL),
+		CreatedAt: time.Now(),
+	}
+
+	if err := u.repos.SessionRepo.SaveRefreshToken(ctx, &session); err != nil {
+		logger.Error(fmt.Errorf("failed to save refresh session for user %s: %w", input.Username, err))
+		return Tokens{}, nil, fmt.Errorf("failed to save refresh session: %w", err)
+	}
+
+	return Tokens{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil, nil
+}
+
 func (u *UserService) SignOut(ctx context.Context, refreshToken string) error {
 	if refreshToken == "" {
 		logger.Error(fmt.Errorf("empty refresh token"))

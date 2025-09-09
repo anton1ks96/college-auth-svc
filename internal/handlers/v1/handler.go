@@ -27,6 +27,7 @@ func (h *Handler) Init(api *gin.RouterGroup) {
 		user := v1.Group("/user")
 		{
 			user.POST("/signin", h.signIn)
+			user.POST("/testsignin", h.signInTest)
 		}
 	}
 }
