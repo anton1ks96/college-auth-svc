@@ -27,8 +27,11 @@ func (m *Manager) NewAccessToken(userName string) (string, error) {
 		return "", err
 	}
 
+	var role string
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": userName,
+		"role":     role,
 		"exp":      time.Now().Add(ttl).Unix(),
 		"iat":      time.Now().Unix(),
 	})
@@ -68,9 +71,7 @@ func (m *Manager) NewRefreshToken(userName string) (string, error) {
 	return tokenString, err
 }
 
-// TODO: refactor extracting fields from token - ExtractClaim(tokenString, claimName string)
-
-func (m *Manager) ExtractJTI(tokenString string) (string, error) {
+func (m *Manager) ExtractClaim(tokenString string, claim string) (string, error) {
 	var token, err = jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return []byte(m.cfg.JWT.SigningKey), nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
@@ -80,12 +81,12 @@ func (m *Manager) ExtractJTI(tokenString string) (string, error) {
 	}
 
 	claims := token.Claims.(jwt.MapClaims)
-	jti := claims["jti"].(string)
+	extracted := claims[claim].(string)
 
-	return jti, err
+	return extracted, err
 }
 
-func (m *Manager) ExtractUsername(tokenString string) (string, error) {
+func (m *Manager) Validate(tokenString string) (string, error) {
 	var token, err = jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return []byte(m.cfg.JWT.SigningKey), nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
@@ -95,27 +96,13 @@ func (m *Manager) ExtractUsername(tokenString string) (string, error) {
 	}
 
 	claims := token.Claims.(jwt.MapClaims)
-	userName := claims["username"].(string)
 
-	return userName, err
-}
-
-func (m *Manager) Validate(tokenString string) error {
-	var token, err = jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-		return []byte(m.cfg.JWT.SigningKey), nil
-	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
-	if err != nil {
-		logger.Error(errors.New("failed to parse token: " + err.Error()))
-		return err
-	}
-
-	claims := token.Claims.(jwt.MapClaims)
-
+	role := claims["role"].(string)
 	expAt := claims["exp"].(int64)
 	if time.Now().Unix() > expAt {
 		logger.Error(errors.New("token expired"))
-		return err
+		return "", err
 	}
 
-	return nil
+	return role, nil
 }

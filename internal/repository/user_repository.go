@@ -18,8 +18,6 @@ func NewUserRepository(cfg *config.Config) *UserRepository {
 	return &UserRepository{cfg: cfg}
 }
 
-// Authentication creates a new LDAP connection for each authentication request
-// Also we can use only one LDAP service connection in the future
 func (u *UserRepository) Authentication(ctx context.Context, username string, password string) error {
 	if ctx.Err() != nil {
 		return ctx.Err()

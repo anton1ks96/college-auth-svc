@@ -59,7 +59,7 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 		return Tokens{}, nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	jti, err := u.tokenManager.ExtractJTI(refreshToken)
+	jti, err := u.tokenManager.ExtractClaim(refreshToken, "jti")
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract jti from token for user %s: %w", input.Username, err))
 		return Tokens{}, nil, fmt.Errorf("failed to extract jti: %w", err)
@@ -106,7 +106,7 @@ func (u *UserService) SignInTest(ctx context.Context, input SignInInput) (Tokens
 		return Tokens{}, nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	jti, err := u.tokenManager.ExtractJTI(refreshToken)
+	jti, err := u.tokenManager.ExtractClaim(refreshToken, "jti")
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract jti from token for user %s: %w", input.Username, err))
 		return Tokens{}, nil, fmt.Errorf("failed to extract jti: %w", err)
@@ -142,7 +142,7 @@ func (u *UserService) SignOut(ctx context.Context, refreshToken string) error {
 		return fmt.Errorf("empty refresh token")
 	}
 
-	jti, err := u.tokenManager.ExtractJTI(refreshToken)
+	jti, err := u.tokenManager.ExtractClaim(refreshToken, "jti")
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract jti from token: %w", err))
 		return err
@@ -162,7 +162,7 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 		return Tokens{}, fmt.Errorf("empty refresh token")
 	}
 
-	userName, err := u.tokenManager.ExtractUsername(refreshToken)
+	userName, err := u.tokenManager.ExtractClaim(refreshToken, "username")
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract username from token: %w", err))
 		return Tokens{}, err
@@ -180,7 +180,7 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 		return Tokens{}, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	jti, err := u.tokenManager.ExtractJTI(newRefresh)
+	jti, err := u.tokenManager.ExtractClaim(newRefresh, "jti")
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract jti from token for user %s: %w", userName, err))
 		return Tokens{}, fmt.Errorf("failed to extract jti: %w", err)
@@ -210,16 +210,19 @@ func (u *UserService) ValidateAccessToken(ctx context.Context, accessToken strin
 		return nil, fmt.Errorf("empty access token")
 	}
 
-	if err := u.tokenManager.Validate(accessToken); err != nil {
+	_, err := u.tokenManager.Validate(accessToken)
+	if err != nil {
 		logger.Error(fmt.Errorf("token is not valid"))
 		return nil, fmt.Errorf("token is not valid")
 	}
 
-	userName, err := u.tokenManager.ExtractUsername(accessToken)
+	userName, err := u.tokenManager.ExtractClaim(accessToken, "username")
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract username from token: %w", err))
 		return nil, err
 	}
+
+	// TODO: add role field
 
 	user, err := u.repos.UserRepo.GetByUsername(ctx, userName)
 	if err != nil {

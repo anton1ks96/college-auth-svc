@@ -40,7 +40,7 @@ func (h *Handler) signIn(c *gin.Context) {
 		})
 		return
 	}
-
+	// TODO: save refresh to cookie
 	c.SetCookie(
 		"access_token",
 		tokens.AccessToken,
@@ -117,4 +117,20 @@ func (h *Handler) signInTest(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) signOut(c *gin.Context) {
+
+}
+
+func (h *Handler) refreshTokens(c *gin.Context) {
+
+}
+
+func (h *Handler) validateToken(c *gin.Context) {
+
+}
+
+func (h *Handler) getInfo(c *gin.Context) {
+
 }
