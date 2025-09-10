@@ -31,6 +31,12 @@ func (h *Handler) Init(api *gin.RouterGroup) {
 		{
 			user.POST("/signin", h.signIn)
 			user.POST("/testsignin", h.signInTest)
+			user.POST("/signout", h.signOut)
+		}
+
+		authenticated := v1.Group("/auth")
+		{
+			authenticated.POST("/validate", h.validateToken)
 		}
 	}
 }
