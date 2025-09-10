@@ -28,7 +28,6 @@ type User interface {
 	SignOut(ctx context.Context, refreshToken string) error
 	RefreshTokens(ctx context.Context, refreshToken string) (Tokens, error)
 	ValidateAccessToken(ctx context.Context, token string) (*domain.User, error)
-	GetInfo(ctx context.Context, input SignInInput) (*domain.User, error)
 }
 
 type Services struct {

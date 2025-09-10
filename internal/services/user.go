@@ -127,7 +127,6 @@ func (u *UserService) SignInTest(ctx context.Context, input SignInInput) (Tokens
 	var user = domain.User{
 		ID:       "123",
 		Username: "qwe",
-		Mail:     "qwe",
 		Role:     "qwe",
 	}
 	return Tokens{
@@ -227,16 +226,6 @@ func (u *UserService) ValidateAccessToken(ctx context.Context, accessToken strin
 	user, err := u.repos.UserRepo.GetByUsername(ctx, userName)
 	if err != nil {
 		logger.Error(fmt.Errorf("find user data failed for user %s: %w", userName, err))
-		return nil, fmt.Errorf("find user data failed: %w", err)
-	}
-
-	return user, nil
-}
-
-func (u *UserService) GetInfo(ctx context.Context, input SignInInput) (*domain.User, error) {
-	user, err := u.repos.UserRepo.GetByUsername(ctx, input.Username)
-	if err != nil {
-		logger.Error(fmt.Errorf("find user data failed for user %s: %w", input.Username, err))
 		return nil, fmt.Errorf("find user data failed: %w", err)
 	}
 

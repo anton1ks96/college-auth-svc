@@ -98,10 +98,10 @@ func (m *Manager) Validate(tokenString string) (string, error) {
 	claims := token.Claims.(jwt.MapClaims)
 
 	role := claims["role"].(string)
-	expAt := claims["exp"].(int64)
-	if time.Now().Unix() > expAt {
+	expAt := claims["exp"].(float64)
+	if time.Now().Unix() > int64(expAt) {
 		logger.Error(errors.New("token expired"))
-		return "", err
+		return "", errors.New("token expired")
 	}
 
 	return role, nil
