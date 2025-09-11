@@ -114,6 +114,7 @@ func (u *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 	user := &domain.User{
 		ID:       entry.GetAttributeValue("uid"),
 		Username: entry.GetAttributeValue("cn"),
+		Role:     entry.GetAttributeValue("employeeType"),
 	}
 
 	logger.Debug(fmt.Sprintf("successfully retrieved user %s from LDAP", username))

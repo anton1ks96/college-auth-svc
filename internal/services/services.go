@@ -24,10 +24,10 @@ type Tokens struct {
 
 type User interface {
 	SignIn(ctx context.Context, input SignInInput) (Tokens, *domain.User, error)
-	SignInTest(ctx context.Context, input SignInInput) (Tokens, *domain.User, error)
 	SignOut(ctx context.Context, refreshToken string) error
 	RefreshTokens(ctx context.Context, refreshToken string) (Tokens, error)
 	ValidateAccessToken(ctx context.Context, token string) (*domain.User, error)
+	// TODO: add check
 }
 
 type Services struct {

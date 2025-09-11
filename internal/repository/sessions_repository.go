@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/anton1ks96/college-auth-svc/internal/config"
@@ -27,14 +26,18 @@ func NewSessionsRepository(cfg *config.Config, db *mongo.Client) *SessionsReposi
 func (s *SessionsRepository) SaveRefreshToken(ctx context.Context, session *domain.RefreshSession) error {
 	coll := s.db.Database(s.cfg.Mongo.DBName).Collection(s.cfg.Mongo.CollName)
 
-	sendSession := domain.RefreshSession{
-		JTI:       session.JTI,
-		Username:  session.Username,
-		ExpiresAt: session.ExpiresAt,
-		CreatedAt: session.CreatedAt,
+	filter := bson.M{"username": session.Username}
+	deleted, err := coll.DeleteMany(ctx, filter)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to delete existing sessions for user %s: %w", session.Username, err))
+		return err
 	}
 
-	_, err := coll.InsertOne(ctx, sendSession)
+	if deleted.DeletedCount > 0 {
+		logger.Debug(fmt.Sprintf("deleted %d existing sessions for user %s", deleted.DeletedCount, session.Username))
+	}
+
+	_, err = coll.InsertOne(ctx, session)
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to save refresh session for user %s: %w", session.Username, err))
 		return err
@@ -44,25 +47,25 @@ func (s *SessionsRepository) SaveRefreshToken(ctx context.Context, session *doma
 	return nil
 }
 
-func (s *SessionsRepository) GetRefreshToken(ctx context.Context, jti string) (*domain.RefreshSession, error) {
-	coll := s.db.Database(s.cfg.Mongo.DBName).Collection(s.cfg.Mongo.CollName)
-
-	var session domain.RefreshSession
-	filter := bson.M{"jti": jti}
-
-	err := coll.FindOne(ctx, filter).Decode(&session)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			logger.Debug(fmt.Sprintf("refresh session not found for JTI: %s", jti))
-			return nil, err
-		}
-		logger.Error(fmt.Errorf("failed to retrieve refresh session for JTI %s: %w", jti, err))
-		return nil, err
-	}
-
-	logger.Debug(fmt.Sprintf("refresh session retrieved for user %s", session.Username))
-	return &session, nil
-}
+//func (s *SessionsRepository) GetRefreshToken(ctx context.Context, jti string) (*domain.RefreshSession, error) {
+//	coll := s.db.Database(s.cfg.Mongo.DBName).Collection(s.cfg.Mongo.CollName)
+//
+//	var session domain.RefreshSession
+//	filter := bson.M{"jti": jti}
+//
+//	err := coll.FindOne(ctx, filter).Decode(&session)
+//	if err != nil {
+//		if errors.Is(err, mongo.ErrNoDocuments) {
+//			logger.Debug(fmt.Sprintf("refresh session not found for JTI: %s", jti))
+//			return nil, err
+//		}
+//		logger.Error(fmt.Errorf("failed to retrieve refresh session for JTI %s: %w", jti, err))
+//		return nil, err
+//	}
+//
+//	logger.Debug(fmt.Sprintf("refresh session retrieved for user %s", session.Username))
+//	return &session, nil
+//}
 
 func (s *SessionsRepository) RevokeRefreshToken(ctx context.Context, jti string) error {
 	coll := s.db.Database(s.cfg.Mongo.DBName).Collection(s.cfg.Mongo.CollName)

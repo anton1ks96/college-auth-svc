@@ -2,7 +2,8 @@ package mongodb
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"time"
 
 	"github.com/anton1ks96/college-auth-svc/internal/config"
 	"github.com/anton1ks96/college-auth-svc/pkg/logger"
@@ -11,14 +12,17 @@ import (
 )
 
 func NewClient(cfg *config.Config) (*mongo.Client, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	opts := options.Client().ApplyURI(cfg.Mongo.URI)
 
 	client, err := mongo.Connect(opts)
 	if err != nil {
-		return nil, errors.New("database connection error")
+		return nil, fmt.Errorf("database connection error: %w", err)
 	}
 
-	err = client.Ping(context.TODO(), nil)
+	err = client.Ping(ctx, nil)
 	if err != nil {
 		logger.Fatal(err)
 	}
