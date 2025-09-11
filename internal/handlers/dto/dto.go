@@ -9,5 +9,4 @@ type UserInfo struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
 	Role     string `json:"role"`
-	Mail     string `json:"email"`
 }

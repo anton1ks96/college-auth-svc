@@ -140,12 +140,12 @@ func (h *Handler) signInTest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  tokens.AccessToken,
 		"refresh_token": tokens.RefreshToken,
-		"expires_in":    int(accessTTL.Seconds()),
 		"user": gin.H{
 			"id":       user.ID,
 			"username": user.Username,
 			"role":     user.Role,
 		},
+		"expires_in": int(accessTTL.Seconds()),
 	})
 }
 
@@ -198,14 +198,6 @@ func (h *Handler) refreshTokens(c *gin.Context) {
 		return
 	}
 
-	refreshTTL, err := time.ParseDuration(h.cfg.JWT.RefreshTokenTTL)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "invalid refresh token TTL configuration",
-		})
-		return
-	}
-
 	c.SetCookie(
 		"access_token",
 		tokens.AccessToken,
@@ -216,20 +208,9 @@ func (h *Handler) refreshTokens(c *gin.Context) {
 		true,
 	)
 
-	c.SetCookie(
-		"refresh_token",
-		tokens.RefreshToken,
-		int(refreshTTL.Seconds()),
-		"/",
-		"",
-		true,
-		true,
-	)
-
 	c.JSON(http.StatusOK, gin.H{
-		"access_token":  tokens.AccessToken,
-		"refresh_token": tokens.RefreshToken,
-		"expires_in":    int(accessTTL.Seconds()),
+		"access_token": tokens.AccessToken,
+		"expires_in":   int(accessTTL.Seconds()),
 	})
 }
 
@@ -241,14 +222,6 @@ func (h *Handler) validateToken(c *gin.Context) {
 		})
 		return
 	}
-
-	//accessToken, err := c.Cookie("access_token")
-	//if err != nil {
-	//	c.JSON(http.StatusBadRequest, gin.H{
-	//		"error": "access token cookie not found",
-	//	})
-	//	return
-	//}
 
 	user, err := h.services.UserService.ValidateAccessToken(c.Request.Context(), token)
 	if err != nil {

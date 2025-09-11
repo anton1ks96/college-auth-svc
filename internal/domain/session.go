@@ -10,7 +10,3 @@ type RefreshSession struct {
 	ExpiresAt time.Time `json:"expires_at" bson:"expires_at"`
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
 }
-
-func (s *RefreshSession) IsExpired() bool {
-	return time.Now().After(s.ExpiresAt)
-}

@@ -25,7 +25,12 @@ func NewUserService(tm auth.Manager, repos Repositories, accessTTL time.Duration
 		refreshTokenTTL: refreshTTL,
 	}
 }
+
 func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *domain.User, error) {
+	if ctx.Err() != nil {
+		return Tokens{}, nil, ctx.Err()
+	}
+
 	if input.Username == "" {
 		logger.Error(fmt.Errorf("empty login username field"))
 		return Tokens{}, nil, fmt.Errorf("empty login username field")
@@ -36,15 +41,27 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 		return Tokens{}, nil, fmt.Errorf("empty login password field")
 	}
 
+	if ctx.Err() != nil {
+		return Tokens{}, nil, ctx.Err()
+	}
+
 	if err := u.repos.UserRepo.Authentication(ctx, input.Username, input.Password); err != nil {
 		logger.Error(fmt.Errorf("authentication failed for user %s: %w", input.Username, err))
 		return Tokens{}, nil, fmt.Errorf("authentication failed: %w", err)
+	}
+
+	if ctx.Err() != nil {
+		return Tokens{}, nil, ctx.Err()
 	}
 
 	user, err := u.repos.UserRepo.GetByUsername(ctx, input.Username)
 	if err != nil {
 		logger.Error(fmt.Errorf("find user data failed for user %s: %w", input.Username, err))
 		return Tokens{}, nil, fmt.Errorf("find user data failed: %w", err)
+	}
+
+	if ctx.Err() != nil {
+		return Tokens{}, nil, ctx.Err()
 	}
 
 	accessToken, err := u.tokenManager.NewAccessToken(input.Username)
@@ -63,6 +80,10 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract jti from token for user %s: %w", input.Username, err))
 		return Tokens{}, nil, fmt.Errorf("failed to extract jti: %w", err)
+	}
+
+	if ctx.Err() != nil {
+		return Tokens{}, nil, ctx.Err()
 	}
 
 	session := domain.RefreshSession{
@@ -84,6 +105,10 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 }
 
 func (u *UserService) SignInTest(ctx context.Context, input SignInInput) (Tokens, *domain.User, error) {
+	if ctx.Err() != nil {
+		return Tokens{}, nil, ctx.Err()
+	}
+
 	if input.Username == "" {
 		logger.Error(fmt.Errorf("empty login username field"))
 		return Tokens{}, nil, fmt.Errorf("empty login username field")
@@ -92,6 +117,10 @@ func (u *UserService) SignInTest(ctx context.Context, input SignInInput) (Tokens
 	if input.Password == "" {
 		logger.Error(fmt.Errorf("empty login password field"))
 		return Tokens{}, nil, fmt.Errorf("empty login password field")
+	}
+
+	if ctx.Err() != nil {
+		return Tokens{}, nil, ctx.Err()
 	}
 
 	accessToken, err := u.tokenManager.NewAccessToken(input.Username)
@@ -112,6 +141,10 @@ func (u *UserService) SignInTest(ctx context.Context, input SignInInput) (Tokens
 		return Tokens{}, nil, fmt.Errorf("failed to extract jti: %w", err)
 	}
 
+	if ctx.Err() != nil {
+		return Tokens{}, nil, ctx.Err()
+	}
+
 	session := domain.RefreshSession{
 		JTI:       jti,
 		Username:  input.Username,
@@ -125,10 +158,11 @@ func (u *UserService) SignInTest(ctx context.Context, input SignInInput) (Tokens
 	}
 
 	var user = domain.User{
-		ID:       "123",
-		Username: "qwe",
-		Role:     "qwe",
+		ID:       "i99s9999",
+		Username: "Vasiliy Testov",
+		Role:     "student",
 	}
+
 	return Tokens{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -136,6 +170,10 @@ func (u *UserService) SignInTest(ctx context.Context, input SignInInput) (Tokens
 }
 
 func (u *UserService) SignOut(ctx context.Context, refreshToken string) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
 	if refreshToken == "" {
 		logger.Error(fmt.Errorf("empty refresh token"))
 		return fmt.Errorf("empty refresh token")
@@ -147,6 +185,10 @@ func (u *UserService) SignOut(ctx context.Context, refreshToken string) error {
 		return err
 	}
 
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
 	if err := u.repos.SessionRepo.RevokeRefreshToken(ctx, jti); err != nil {
 		logger.Error(fmt.Errorf("failed to revoke refresh token: %w", err))
 		return err
@@ -156,6 +198,10 @@ func (u *UserService) SignOut(ctx context.Context, refreshToken string) error {
 }
 
 func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (Tokens, error) {
+	if ctx.Err() != nil {
+		return Tokens{}, ctx.Err()
+	}
+
 	if refreshToken == "" {
 		logger.Error(fmt.Errorf("empty refresh token"))
 		return Tokens{}, fmt.Errorf("empty refresh token")
@@ -165,6 +211,10 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract username from token: %w", err))
 		return Tokens{}, err
+	}
+
+	if ctx.Err() != nil {
+		return Tokens{}, ctx.Err()
 	}
 
 	newAccess, err := u.tokenManager.NewAccessToken(userName)
@@ -183,6 +233,10 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract jti from token for user %s: %w", userName, err))
 		return Tokens{}, fmt.Errorf("failed to extract jti: %w", err)
+	}
+
+	if ctx.Err() != nil {
+		return Tokens{}, ctx.Err()
 	}
 
 	session := domain.RefreshSession{
@@ -204,6 +258,10 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 }
 
 func (u *UserService) ValidateAccessToken(ctx context.Context, accessToken string) (*domain.User, error) {
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
 	if accessToken == "" {
 		logger.Error(fmt.Errorf("empty access token"))
 		return nil, fmt.Errorf("empty access token")
@@ -221,7 +279,9 @@ func (u *UserService) ValidateAccessToken(ctx context.Context, accessToken strin
 		return nil, err
 	}
 
-	// TODO: add role field
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
 
 	user, err := u.repos.UserRepo.GetByUsername(ctx, userName)
 	if err != nil {

@@ -5,7 +5,6 @@ server:
   writeTimeout: 7s
 
 
-# TODO: set longer token TTL
 jwt:
   accessTokenTTL: 72h
   refreshTokenTTL: 720h
