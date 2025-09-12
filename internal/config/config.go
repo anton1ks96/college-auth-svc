@@ -18,6 +18,7 @@ type (
 		Mongo   MongoConfig
 		JWT     JWTConfig
 		LDAP    LDAPConfig
+		App     App
 	}
 	Server struct {
 		Port           string
@@ -26,6 +27,9 @@ type (
 		MaxHeaderBytes int
 	}
 
+	App struct {
+		Test bool
+	}
 	LimiterConfig struct {
 		RPS   int
 		Burst int

@@ -20,16 +20,15 @@ func NewManager(cfg *config.Config) *Manager {
 	}
 }
 
-func (m *Manager) NewAccessToken(userName string) (string, error) {
+func (m *Manager) NewAccessToken(userId, userName, role string) (string, error) {
 	ttl, err := time.ParseDuration(m.cfg.JWT.AccessTokenTTL)
 	if err != nil {
 		logger.Error(errors.New("failed to parse access token TTL: " + err.Error()))
 		return "", err
 	}
 
-	var role string
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id":  userId,
 		"username": userName,
 		"role":     role,
 		"exp":      time.Now().Add(ttl).Unix(),
@@ -45,7 +44,7 @@ func (m *Manager) NewAccessToken(userName string) (string, error) {
 	return tokenString, err
 }
 
-func (m *Manager) NewRefreshToken(userName string) (string, error) {
+func (m *Manager) NewRefreshToken(userId string) (string, error) {
 	jti := uuid.New().String()
 
 	ttl, err := time.ParseDuration(m.cfg.JWT.RefreshTokenTTL)
@@ -55,10 +54,10 @@ func (m *Manager) NewRefreshToken(userName string) (string, error) {
 	}
 
 	claims := jwt.MapClaims{
-		"username": userName,
-		"jti":      jti,
-		"exp":      time.Now().Add(ttl).Unix(),
-		"iat":      time.Now().Unix(),
+		"user_id": userId,
+		"jti":     jti,
+		"exp":     time.Now().Add(ttl).Unix(),
+		"iat":     time.Now().Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

@@ -26,24 +26,24 @@ func NewSessionsRepository(cfg *config.Config, db *mongo.Client) *SessionsReposi
 func (s *SessionsRepository) SaveRefreshToken(ctx context.Context, session *domain.RefreshSession) error {
 	coll := s.db.Database(s.cfg.Mongo.DBName).Collection(s.cfg.Mongo.CollName)
 
-	filter := bson.M{"username": session.Username}
+	filter := bson.M{"username": session.UserID}
 	deleted, err := coll.DeleteMany(ctx, filter)
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to delete existing sessions for user %s: %w", session.Username, err))
+		logger.Error(fmt.Errorf("failed to delete existing sessions for user %s: %w", session.UserID, err))
 		return err
 	}
 
 	if deleted.DeletedCount > 0 {
-		logger.Debug(fmt.Sprintf("deleted %d existing sessions for user %s", deleted.DeletedCount, session.Username))
+		logger.Debug(fmt.Sprintf("deleted %d existing sessions for user %s", deleted.DeletedCount, session.UserID))
 	}
 
 	_, err = coll.InsertOne(ctx, session)
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to save refresh session for user %s: %w", session.Username, err))
+		logger.Error(fmt.Errorf("failed to save refresh session for user %s: %w", session.UserID, err))
 		return err
 	}
 
-	logger.Debug(fmt.Sprintf("refresh session saved for user %s", session.Username))
+	logger.Debug(fmt.Sprintf("refresh session saved for user %s", session.UserID))
 	return nil
 }
 

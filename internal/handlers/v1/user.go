@@ -23,7 +23,7 @@ func (h *Handler) signIn(c *gin.Context) {
 	}
 
 	tokens, user, err := h.services.UserService.SignIn(c.Request.Context(), service.SignInInput{
-		Username: loginReq.Username,
+		UserID:   loginReq.Username,
 		Password: loginReq.Password,
 	})
 	if err != nil {
@@ -80,74 +80,6 @@ func (h *Handler) signIn(c *gin.Context) {
 		},
 	})
 }
-
-//func (h *Handler) signInTest(c *gin.Context) {
-//	var loginReq dto.LoginRequest
-//	if err := c.BindJSON(&loginReq); err != nil {
-//		c.JSON(http.StatusBadRequest, gin.H{
-//			"error": err.Error(),
-//		})
-//		return
-//	}
-//
-//	tokens, user, err := h.services.UserService.SignInTest(c.Request.Context(), service.SignInInput{
-//		Username: loginReq.Username,
-//		Password: loginReq.Password,
-//	})
-//	if err != nil {
-//		c.JSON(http.StatusUnauthorized, gin.H{
-//			"error": err.Error(),
-//		})
-//		return
-//	}
-//
-//	accessTTL, err := time.ParseDuration(h.cfg.JWT.AccessTokenTTL)
-//	if err != nil {
-//		c.JSON(http.StatusInternalServerError, gin.H{
-//			"error": "invalid access token TTL",
-//		})
-//		return
-//	}
-//
-//	refreshTTL, err := time.ParseDuration(h.cfg.JWT.RefreshTokenTTL)
-//	if err != nil {
-//		c.JSON(http.StatusInternalServerError, gin.H{
-//			"error": "invalid refresh token TTL",
-//		})
-//		return
-//	}
-//
-//	c.SetCookie(
-//		"access_token",
-//		tokens.AccessToken,
-//		int(accessTTL.Seconds()),
-//		"/",
-//		"",
-//		true,
-//		true,
-//	)
-//
-//	c.SetCookie(
-//		"refresh_token",
-//		tokens.RefreshToken,
-//		int(refreshTTL.Seconds()),
-//		"/",
-//		"",
-//		true,
-//		true,
-//	)
-//
-//	c.JSON(http.StatusOK, gin.H{
-//		"access_token":  tokens.AccessToken,
-//		"refresh_token": tokens.RefreshToken,
-//		"user": gin.H{
-//			"id":       user.ID,
-//			"username": user.Username,
-//			"role":     user.Role,
-//		},
-//		"expires_in": int(accessTTL.Seconds()),
-//	})
-//}
 
 func (h *Handler) signOut(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")

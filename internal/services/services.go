@@ -13,7 +13,7 @@ import (
 )
 
 type SignInInput struct {
-	Username string `json:"username" binding:"required"`
+	UserID   string `json:"userid" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -27,7 +27,6 @@ type User interface {
 	SignOut(ctx context.Context, refreshToken string) error
 	RefreshTokens(ctx context.Context, refreshToken string) (Tokens, error)
 	ValidateAccessToken(ctx context.Context, token string) (*domain.User, error)
-	// TODO: add check
 }
 
 type Services struct {
@@ -56,7 +55,7 @@ func NewServices(deps Deps) *Services {
 		logger.Fatal(fmt.Errorf("invalid refresh token TTL: %w", err))
 	}
 
-	userService := NewUserService(*deps.TokenManager, *deps.Repos, accessTTL, refreshTTL)
+	userService := NewUserService(*deps.TokenManager, *deps.Repos, accessTTL, refreshTTL, &deps.Config.App)
 
 	return &Services{
 		UserService: userService,
