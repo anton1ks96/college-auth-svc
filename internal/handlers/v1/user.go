@@ -172,18 +172,21 @@ func (h *Handler) validateToken(c *gin.Context) {
 
 func (h *Handler) getFromHeader(c *gin.Context) (string, error) {
 	token := c.GetHeader("Authorization")
-	if token == "" {
-		return "", fmt.Errorf("authorization header is missing")
+	if token != "" {
+		if !strings.HasPrefix(token, "Bearer ") {
+			return "", fmt.Errorf("invalid authorization header format")
+		}
+		extractedToken := strings.TrimPrefix(token, "Bearer ")
+		if extractedToken == "" {
+			return "", fmt.Errorf("empty token in authorization header")
+		}
+		return extractedToken, nil
 	}
 
-	if !strings.HasPrefix(token, "Bearer ") {
-		return "", fmt.Errorf("invalid authorization header format")
+	cookieToken, err := c.Cookie("access_token")
+	if err == nil && cookieToken != "" {
+		return cookieToken, nil
 	}
 
-	extractedToken := strings.TrimPrefix(token, "Bearer ")
-	if extractedToken == "" {
-		return "", fmt.Errorf("empty token in authorization header")
-	}
-
-	return extractedToken, nil
+	return "", fmt.Errorf("authorization header is missing")
 }
