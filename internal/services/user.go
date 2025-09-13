@@ -195,9 +195,9 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 			Role:     "student",
 		}
 	} else {
-		user, err = u.repos.UserRepo.GetByID(ctx, userID)
+		user, err = u.repos.SessionRepo.GetUserByID(ctx, userID)
 		if err != nil {
-			logger.Error(fmt.Errorf("failed to get user data for ID %s: %w", userID, err))
+			logger.Error(fmt.Errorf("failed to get user data from session for ID %s: %w", userID, err))
 			return Tokens{}, fmt.Errorf("failed to get user data: %w", err)
 		}
 	}
