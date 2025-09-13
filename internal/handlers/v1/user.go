@@ -11,8 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO: add method that can simplify getting token TTL values instead of parsing duration in each handler
-
 func (h *Handler) signIn(c *gin.Context) {
 	var loginReq dto.LoginRequest
 	if err := c.BindJSON(&loginReq); err != nil {

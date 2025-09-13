@@ -9,12 +9,14 @@ import (
 // UserLDAPRepository handles user authentication and data retrieval from LDAP
 type UserLDAPRepository interface {
 	Authentication(ctx context.Context, username, password string) error
-	GetByID(ctx context.Context, username string) (*domain.User, error)
+	GetByID(ctx context.Context, userID string) (*domain.User, error)
 }
 
 // SessionMongoRepository manages refresh tokens and user sessions in MongoDB
 type SessionMongoRepository interface {
 	SaveRefreshToken(ctx context.Context, session *domain.RefreshSession) error
 	RevokeRefreshToken(ctx context.Context, jti string) error
-	// GetRefreshToken(ctx context.Context, jti string) (*domain.RefreshSession, error)
+	RevokeAllUserSessions(ctx context.Context, userID string) error
+	TokenExists(ctx context.Context, jti string) (bool, error)
+	ReplaceRefreshToken(ctx context.Context, oldJTI string, newSession *domain.RefreshSession) error
 }

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/anton1ks96/college-auth-svc/internal/config"
@@ -21,6 +22,10 @@ func NewManager(cfg *config.Config) *Manager {
 }
 
 func (m *Manager) NewAccessToken(userId, userName, role string) (string, error) {
+	if userId == "" || userName == "" || role == "" {
+		return "", errors.New("userId, userName and role cannot be empty")
+	}
+
 	ttl, err := time.ParseDuration(m.cfg.JWT.AccessTokenTTL)
 	if err != nil {
 		logger.Error(errors.New("failed to parse access token TTL: " + err.Error()))
@@ -41,10 +46,14 @@ func (m *Manager) NewAccessToken(userId, userName, role string) (string, error) 
 		return "", err
 	}
 
-	return tokenString, err
+	return tokenString, nil
 }
 
 func (m *Manager) NewRefreshToken(userId string) (string, error) {
+	if userId == "" {
+		return "", errors.New("userId cannot be empty")
+	}
+
 	jti := uuid.New().String()
 
 	ttl, err := time.ParseDuration(m.cfg.JWT.RefreshTokenTTL)
@@ -67,39 +76,90 @@ func (m *Manager) NewRefreshToken(userId string) (string, error) {
 		return "", err
 	}
 
-	return tokenString, err
+	return tokenString, nil
 }
 
 func (m *Manager) ExtractClaim(tokenString string, claim string) (string, error) {
-	var token, err = jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+	if tokenString == "" {
+		return "", errors.New("token cannot be empty")
+	}
+	if claim == "" {
+		return "", errors.New("claim name cannot be empty")
+	}
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return []byte(m.cfg.JWT.SigningKey), nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+
 	if err != nil {
 		logger.Error(errors.New("failed to parse token: " + err.Error()))
 		return "", err
 	}
 
-	claims := token.Claims.(jwt.MapClaims)
-	extracted := claims[claim].(string)
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", errors.New("invalid claims format")
+	}
 
-	return extracted, err
+	claimValue, exists := claims[claim]
+	if !exists {
+		return "", errors.New("claim not found in token")
+	}
+
+	claimString, ok := claimValue.(string)
+	if !ok {
+		return "", errors.New("claim is not a string")
+	}
+
+	return claimString, nil
 }
 
 func (m *Manager) Validate(tokenString string) error {
-	var token, err = jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+	if tokenString == "" {
+		return errors.New("token cannot be empty")
+	}
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return []byte(m.cfg.JWT.SigningKey), nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+
 	if err != nil {
 		logger.Error(errors.New("failed to parse token: " + err.Error()))
 		return err
 	}
 
-	claims := token.Claims.(jwt.MapClaims)
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return errors.New("invalid claims format")
+	}
 
-	expAt := claims["exp"].(float64)
+	expAt, ok := claims["exp"].(float64)
+	if !ok {
+		return errors.New("expiration claim missing or invalid")
+	}
+
 	if time.Now().Unix() > int64(expAt) {
 		logger.Error(errors.New("token expired"))
 		return errors.New("token expired")
+	}
+
+	return nil
+}
+
+func (m *Manager) ValidateRefreshToken(tokenString string) error {
+	if err := m.Validate(tokenString); err != nil {
+		return err
+	}
+
+	_, err := m.ExtractClaim(tokenString, "jti")
+	if err != nil {
+		return errors.New("refresh token must contain JTI")
 	}
 
 	return nil

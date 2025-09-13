@@ -101,6 +101,11 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 		CreatedAt: time.Now(),
 	}
 
+	if err := u.repos.SessionRepo.RevokeAllUserSessions(ctx, input.UserID); err != nil {
+		logger.Error(fmt.Errorf("failed to revoke old sessions: %w", err))
+		return Tokens{}, nil, err
+	}
+
 	if err := u.repos.SessionRepo.SaveRefreshToken(ctx, &session); err != nil {
 		logger.Error(fmt.Errorf("failed to save refresh session for user %s: %w", input.UserID, err))
 		return Tokens{}, nil, fmt.Errorf("failed to save refresh session: %w", err)
@@ -150,20 +155,49 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 		return Tokens{}, fmt.Errorf("empty refresh token")
 	}
 
+	if err := u.tokenManager.ValidateRefreshToken(refreshToken); err != nil {
+		logger.Warn(fmt.Sprintf("invalid refresh token structure: %v", err))
+		return Tokens{}, fmt.Errorf("invalid token")
+	}
+
 	userID, err := u.tokenManager.ExtractClaim(refreshToken, "user_id")
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract user_id from token: %w", err))
-		return Tokens{}, err
+		return Tokens{}, fmt.Errorf("invalid token claims")
 	}
 
-	if ctx.Err() != nil {
-		return Tokens{}, ctx.Err()
-	}
-
-	user, err := u.repos.UserRepo.GetByID(ctx, userID)
+	oldJti, err := u.tokenManager.ExtractClaim(refreshToken, "jti")
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to get user data for ID %s: %w", userID, err))
-		return Tokens{}, fmt.Errorf("failed to get user data: %w", err)
+		logger.Error(fmt.Errorf("failed to extract jti from token: %w", err))
+		return Tokens{}, fmt.Errorf("invalid token claims")
+	}
+
+	tokenExists, err := u.repos.SessionRepo.TokenExists(ctx, oldJti)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to check token existence: %w", err))
+		return Tokens{}, fmt.Errorf("authentication service unavailable")
+	}
+
+	if !tokenExists {
+		logger.Warn(fmt.Sprintf("attempt to use non-existent refresh token: jti=%s, user=%s",
+			oldJti, userID))
+		return Tokens{}, fmt.Errorf("token not found or already used")
+	}
+
+	var user *domain.User
+
+	if u.cfg.Test {
+		user = &domain.User{
+			ID:       "i99s9999",
+			Username: "Vasiliy Testov",
+			Role:     "student",
+		}
+	} else {
+		user, err = u.repos.UserRepo.GetByID(ctx, userID)
+		if err != nil {
+			logger.Error(fmt.Errorf("failed to get user data for ID %s: %w", userID, err))
+			return Tokens{}, fmt.Errorf("failed to get user data: %w", err)
+		}
 	}
 
 	tokens, err := u.generateTokens(user)
@@ -172,26 +206,22 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 		return Tokens{}, fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
-	jti, err := u.tokenManager.ExtractClaim(tokens.RefreshToken, "jti")
+	newJti, err := u.tokenManager.ExtractClaim(tokens.RefreshToken, "jti")
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to extract jti from token for user %s: %w", userID, err))
-		return Tokens{}, fmt.Errorf("failed to extract jti: %w", err)
+		logger.Error(fmt.Errorf("failed to extract jti from new token for user %s: %w", userID, err))
+		return Tokens{}, fmt.Errorf("failed to extract new token JTI: %w", err)
 	}
 
-	if ctx.Err() != nil {
-		return Tokens{}, ctx.Err()
-	}
-
-	session := domain.RefreshSession{
-		JTI:       jti,
+	newSession := domain.RefreshSession{
+		JTI:       newJti,
 		UserID:    userID,
 		ExpiresAt: time.Now().Add(u.refreshTokenTTL),
 		CreatedAt: time.Now(),
 	}
 
-	if err := u.repos.SessionRepo.SaveRefreshToken(ctx, &session); err != nil {
-		logger.Error(fmt.Errorf("failed to save refresh session for user %s: %w", userID, err))
-		return Tokens{}, fmt.Errorf("failed to save refresh session: %w", err)
+	if err := u.repos.SessionRepo.ReplaceRefreshToken(ctx, oldJti, &newSession); err != nil {
+		logger.Error(fmt.Errorf("failed to replace refresh token: %w", err))
+		return Tokens{}, fmt.Errorf("failed to rotate tokens")
 	}
 
 	return Tokens{
@@ -226,10 +256,20 @@ func (u *UserService) ValidateAccessToken(ctx context.Context, accessToken strin
 		return nil, ctx.Err()
 	}
 
-	user, err := u.repos.UserRepo.GetByID(ctx, userID)
-	if err != nil {
-		logger.Error(fmt.Errorf("find user data failed for user %s: %w", userID, err))
-		return nil, fmt.Errorf("find user data failed: %w", err)
+	var user *domain.User
+
+	if u.cfg.Test {
+		user = &domain.User{
+			ID:       "i99s9999",
+			Username: "Vasiliy Testov",
+			Role:     "student",
+		}
+	} else {
+		user, err = u.repos.UserRepo.GetByID(ctx, userID)
+		if err != nil {
+			logger.Error(fmt.Errorf("failed to get user data for ID %s: %w", userID, err))
+			return nil, fmt.Errorf("failed to get user data: %w", err)
+		}
 	}
 
 	return user, nil
