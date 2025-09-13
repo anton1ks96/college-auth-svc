@@ -108,3 +108,24 @@ func (s *SessionsRepository) ReplaceRefreshToken(ctx context.Context, oldJTI str
 
 	return nil
 }
+
+func (s *SessionsRepository) GetUserByID(ctx context.Context, userID string) (*domain.User, error) {
+	coll := s.db.Database(s.cfg.Mongo.DBName).Collection(s.cfg.Mongo.CollName)
+
+	var session domain.RefreshSession
+	filter := bson.M{"userid": userID}
+
+	err := coll.FindOne(ctx, filter).Decode(&session)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("user session not found")
+		}
+		return nil, fmt.Errorf("failed to get user session: %w", err)
+	}
+
+	return &domain.User{
+		ID:       session.UserID,
+		Username: session.Username,
+		Role:     session.Role,
+	}, nil
+}

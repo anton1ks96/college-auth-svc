@@ -97,6 +97,8 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 	session := domain.RefreshSession{
 		JTI:       jti,
 		UserID:    input.UserID,
+		Username:  user.Username,
+		Role:      user.Role,
 		ExpiresAt: time.Now().Add(u.refreshTokenTTL),
 		CreatedAt: time.Now(),
 	}
@@ -215,6 +217,8 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 	newSession := domain.RefreshSession{
 		JTI:       newJti,
 		UserID:    userID,
+		Username:  user.Username,
+		Role:      user.Role,
 		ExpiresAt: time.Now().Add(u.refreshTokenTTL),
 		CreatedAt: time.Now(),
 	}
@@ -265,9 +269,9 @@ func (u *UserService) ValidateAccessToken(ctx context.Context, accessToken strin
 			Role:     "student",
 		}
 	} else {
-		user, err = u.repos.UserRepo.GetByID(ctx, userID)
+		user, err = u.repos.SessionRepo.GetUserByID(ctx, userID)
 		if err != nil {
-			logger.Error(fmt.Errorf("failed to get user data for ID %s: %w", userID, err))
+			logger.Error(fmt.Errorf("failed to get user data from session for ID %s: %w", userID, err))
 			return nil, fmt.Errorf("failed to get user data: %w", err)
 		}
 	}
