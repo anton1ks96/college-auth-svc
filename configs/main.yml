@@ -12,7 +12,7 @@ jwt:
   refreshTokenTTL: 720h
 
 ldap:
-  baseDn: "ou=groups,dc=it-college,dc=ru"
+  baseDn: "ou=groups,dc=it-college,dc=ru" # people/teachers
 
 limiter:
   rps: 4

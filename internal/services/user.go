@@ -78,19 +78,13 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 		}
 	}
 
-	accessToken, err := u.tokenManager.NewAccessToken(user.ID, user.Username, user.Role)
+	tokens, err := u.generateTokens(user)
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to generate access token for user %s: %w", input.UserID, err))
-		return Tokens{}, nil, fmt.Errorf("failed to generate access token: %w", err)
+		logger.Error(fmt.Errorf("failed to generate tokens for user %s: %w", input.UserID, err))
+		return Tokens{}, nil, fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
-	refreshToken, err := u.tokenManager.NewRefreshToken(input.UserID)
-	if err != nil {
-		logger.Error(fmt.Errorf("failed to generate refresh token for user %s: %w", input.UserID, err))
-		return Tokens{}, nil, fmt.Errorf("failed to generate refresh token: %w", err)
-	}
-
-	jti, err := u.tokenManager.ExtractClaim(refreshToken, "jti")
+	jti, err := u.tokenManager.ExtractClaim(tokens.RefreshToken, "jti")
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract jti from token for user %s: %w", input.UserID, err))
 		return Tokens{}, nil, fmt.Errorf("failed to extract jti: %w", err)
@@ -113,8 +107,8 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 	}
 
 	return Tokens{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
 	}, user, nil
 }
 
@@ -172,19 +166,13 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 		return Tokens{}, fmt.Errorf("failed to get user data: %w", err)
 	}
 
-	newAccess, err := u.tokenManager.NewAccessToken(user.ID, user.Username, user.Role)
+	tokens, err := u.generateTokens(user)
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to generate access token for user %s: %w", userID, err))
-		return Tokens{}, fmt.Errorf("failed to generate access token: %w", err)
+		logger.Error(fmt.Errorf("failed to generate tokens for user %s: %w", user.ID, err))
+		return Tokens{}, fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
-	newRefresh, err := u.tokenManager.NewRefreshToken(user.ID)
-	if err != nil {
-		logger.Error(fmt.Errorf("failed to generate refresh token for user %s: %w", userID, err))
-		return Tokens{}, fmt.Errorf("failed to generate refresh token: %w", err)
-	}
-
-	jti, err := u.tokenManager.ExtractClaim(newRefresh, "jti")
+	jti, err := u.tokenManager.ExtractClaim(tokens.RefreshToken, "jti")
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract jti from token for user %s: %w", userID, err))
 		return Tokens{}, fmt.Errorf("failed to extract jti: %w", err)
@@ -207,8 +195,8 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 	}
 
 	return Tokens{
-		AccessToken:  newAccess,
-		RefreshToken: newRefresh,
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
 	}, nil
 }
 
@@ -228,9 +216,9 @@ func (u *UserService) ValidateAccessToken(ctx context.Context, accessToken strin
 		return nil, fmt.Errorf("token expired")
 	}
 
-	userName, err := u.tokenManager.ExtractClaim(accessToken, "username")
+	userID, err := u.tokenManager.ExtractClaim(accessToken, "user_id")
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to extract username from token: %w", err))
+		logger.Error(fmt.Errorf("failed to extract user_id from token: %w", err))
 		return nil, err
 	}
 
@@ -238,11 +226,30 @@ func (u *UserService) ValidateAccessToken(ctx context.Context, accessToken strin
 		return nil, ctx.Err()
 	}
 
-	user, err := u.repos.UserRepo.GetByID(ctx, userName)
+	user, err := u.repos.UserRepo.GetByID(ctx, userID)
 	if err != nil {
-		logger.Error(fmt.Errorf("find user data failed for user %s: %w", userName, err))
+		logger.Error(fmt.Errorf("find user data failed for user %s: %w", userID, err))
 		return nil, fmt.Errorf("find user data failed: %w", err)
 	}
 
 	return user, nil
+}
+
+func (u *UserService) generateTokens(user *domain.User) (Tokens, error) {
+	newAccess, err := u.tokenManager.NewAccessToken(user.ID, user.Username, user.Role)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to generate access token for user %s: %w", user.ID, err))
+		return Tokens{}, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	newRefresh, err := u.tokenManager.NewRefreshToken(user.ID)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to generate refresh token for user %s: %w", user.ID, err))
+		return Tokens{}, fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	return Tokens{
+		AccessToken:  newAccess,
+		RefreshToken: newRefresh,
+	}, nil
 }

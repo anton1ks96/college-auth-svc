@@ -31,8 +31,6 @@ func (u *UserRepository) Authentication(ctx context.Context, userID string, pass
 	}
 	defer l.Close()
 
-	logger.Debug(fmt.Sprintf("LDAP connection established for user: %s", userID))
-
 	if ctx.Err() != nil {
 		logger.Error(fmt.Errorf("context cancelled after LDAP connection for user %s: %w", userID, ctx.Err()))
 		return ctx.Err()
