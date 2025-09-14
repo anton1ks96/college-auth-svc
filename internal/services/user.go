@@ -103,11 +103,6 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 		CreatedAt: time.Now(),
 	}
 
-	if err := u.repos.SessionRepo.RevokeAllUserSessions(ctx, input.UserID); err != nil {
-		logger.Error(fmt.Errorf("failed to revoke old sessions: %w", err))
-		return Tokens{}, nil, err
-	}
-
 	if err := u.repos.SessionRepo.SaveRefreshToken(ctx, &session); err != nil {
 		logger.Error(fmt.Errorf("failed to save refresh session for user %s: %w", input.UserID, err))
 		return Tokens{}, nil, fmt.Errorf("failed to save refresh session: %w", err)
@@ -188,18 +183,10 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 
 	var user *domain.User
 
-	if u.cfg.Test {
-		user = &domain.User{
-			ID:       "i99s9999",
-			Username: "Vasiliy Testov",
-			Role:     "student",
-		}
-	} else {
-		user, err = u.repos.SessionRepo.GetUserByID(ctx, userID)
-		if err != nil {
-			logger.Error(fmt.Errorf("failed to get user data from session for ID %s: %w", userID, err))
-			return Tokens{}, fmt.Errorf("failed to get user data: %w", err)
-		}
+	user, err = u.repos.SessionRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to get user data from session for ID %s: %w", userID, err))
+		return Tokens{}, fmt.Errorf("failed to get user data: %w", err)
 	}
 
 	tokens, err := u.generateTokens(user)
@@ -262,18 +249,10 @@ func (u *UserService) ValidateAccessToken(ctx context.Context, accessToken strin
 
 	var user *domain.User
 
-	if u.cfg.Test {
-		user = &domain.User{
-			ID:       "i99s9999",
-			Username: "Vasiliy Testov",
-			Role:     "student",
-		}
-	} else {
-		user, err = u.repos.SessionRepo.GetUserByID(ctx, userID)
-		if err != nil {
-			logger.Error(fmt.Errorf("failed to get user data from session for ID %s: %w", userID, err))
-			return nil, fmt.Errorf("failed to get user data: %w", err)
-		}
+	user, err = u.repos.SessionRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to get user data from session for ID %s: %w", userID, err))
+		return nil, fmt.Errorf("failed to get user data: %w", err)
 	}
 
 	return user, nil
