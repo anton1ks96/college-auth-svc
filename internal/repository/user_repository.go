@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/anton1ks96/college-auth-svc/internal/config"
 	"github.com/anton1ks96/college-auth-svc/internal/domain"
@@ -18,7 +19,7 @@ func NewUserRepository(cfg *config.Config) *UserRepository {
 	return &UserRepository{cfg: cfg}
 }
 
-func (u *UserRepository) Authentication(ctx context.Context, userID string, password string) error {
+func (u *UserRepository) Authentication(ctx context.Context, userID, userPass string) error {
 	if ctx.Err() != nil {
 		logger.Error(fmt.Errorf("context cancelled during authentication for user %s: %w", userID, ctx.Err()))
 		return ctx.Err()
@@ -31,27 +32,23 @@ func (u *UserRepository) Authentication(ctx context.Context, userID string, pass
 	}
 	defer l.Close()
 
-	if ctx.Err() != nil {
-		logger.Error(fmt.Errorf("context cancelled after LDAP connection for user %s: %w", userID, ctx.Err()))
-		return ctx.Err()
+	var dn string
+
+	if !strings.HasPrefix(userID, "t") {
+		dn = fmt.Sprintf("uid=%s,ou=people,dc=it-college,dc=ru", userID)
+	} else {
+		dn = fmt.Sprintf("uid=%s,ou=teachers,dc=it-college,dc=ru", userID)
 	}
 
-	dn := fmt.Sprintf("uid=%s,ou=people,dc=it-college,dc=ru", userID)
-
-	if err := l.Bind(dn, password); err != nil {
+	if err := l.Bind(dn, userPass); err != nil {
 		logger.Warn(fmt.Sprintf("LDAP authentication failed for user %s with DN %s", userID, dn))
 		return fmt.Errorf("authentication failed")
-	}
-
-	if ctx.Err() != nil {
-		logger.Error(fmt.Errorf("context cancelled after successful bind for user %s: %w", userID, ctx.Err()))
-		return ctx.Err()
 	}
 
 	return nil
 }
 
-func (u *UserRepository) GetByID(ctx context.Context, userID string) (*domain.User, error) {
+func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (*domain.User, error) {
 	if ctx.Err() != nil {
 		logger.Error(fmt.Errorf("context cancelled during user retrieval for user %s: %w", userID, ctx.Err()))
 		return nil, ctx.Err()
@@ -64,34 +61,30 @@ func (u *UserRepository) GetByID(ctx context.Context, userID string) (*domain.Us
 	}
 	defer l.Close()
 
-	if ctx.Err() != nil {
-		logger.Error(fmt.Errorf("context cancelled after LDAP connection during user lookup for %s: %w", userID, ctx.Err()))
-		return nil, ctx.Err()
+	var dn string
+
+	if !strings.HasPrefix(userID, "t") {
+		dn = fmt.Sprintf("uid=%s,ou=people,dc=it-college,dc=ru", userID)
+	} else {
+		dn = fmt.Sprintf("uid=%s,ou=teachers,dc=it-college,dc=ru", userID)
 	}
 
-	serviceDN := fmt.Sprintf("uid=%s,ou=people,dc=it-college,dc=ru", u.cfg.LDAP.BindUsername)
-
-	if err := l.Bind(serviceDN, u.cfg.LDAP.BindPassword); err != nil {
-		logger.Error(fmt.Errorf("failed to bind service account %s to LDAP during user lookup for %s: %w", u.cfg.LDAP.BindUsername, userID, err))
+	if err := l.Bind(dn, userPass); err != nil {
+		logger.Error(fmt.Errorf("failed to bind account %s to LDAP during user lookup for %s: %w", userID, userID, err))
 		return nil, fmt.Errorf("service account bind failed")
-	}
-
-	if ctx.Err() != nil {
-		logger.Error(fmt.Errorf("context cancelled after service account bind during user lookup for %s: %w", userID, ctx.Err()))
-		return nil, ctx.Err()
 	}
 
 	searchFilter := fmt.Sprintf("(uid=%s)", ldap.EscapeFilter(userID))
 
 	userReq := ldap.NewSearchRequest(
-		"ou=people,dc=it-college,dc=ru",
+		dn,
 		ldap.ScopeWholeSubtree,
 		ldap.NeverDerefAliases,
 		0,
 		5,
 		false,
 		searchFilter,
-		[]string{"uid", "cn", "mail", "employeeType"},
+		[]string{"uid", "cn", "employeeType"},
 		nil,
 	)
 
@@ -115,8 +108,6 @@ func (u *UserRepository) GetByID(ctx context.Context, userID string) (*domain.Us
 		logger.Error(fmt.Errorf("multiple LDAP entries (%d) found for user %s - this should not happen", len(sr.Entries), userID))
 		return nil, fmt.Errorf("multiple users found")
 	}
-
-	// TODO: determine user role func
 
 	entry := sr.Entries[0]
 	user := &domain.User{

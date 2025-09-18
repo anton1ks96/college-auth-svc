@@ -8,8 +8,8 @@ import (
 
 // UserLDAPRepository handles user authentication and data retrieval from LDAP
 type UserLDAPRepository interface {
-	Authentication(ctx context.Context, username, password string) error
-	GetByID(ctx context.Context, userID string) (*domain.User, error)
+	Authentication(ctx context.Context, userID, userPass string) error
+	GetByID(ctx context.Context, userID, userPass string) (*domain.User, error)
 }
 
 // SessionMongoRepository manages refresh tokens and user sessions in MongoDB

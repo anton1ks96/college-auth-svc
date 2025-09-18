@@ -11,9 +11,6 @@ jwt:
   accessTokenTTL: 72h
   refreshTokenTTL: 720h
 
-ldap:
-  baseDn: "ou=groups,dc=it-college,dc=ru" # people/teachers
-
 limiter:
   rps: 4
   burst: 10

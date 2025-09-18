@@ -53,7 +53,7 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 
 	if u.cfg.Test {
 		user = &domain.User{
-			ID:       "i99s9999",
+			ID:       input.UserID,
 			Username: "Vasiliy Testov",
 			Role:     "student",
 		}
@@ -67,7 +67,7 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 			return Tokens{}, nil, ctx.Err()
 		}
 
-		user, err = u.repos.UserRepo.GetByID(ctx, input.UserID)
+		user, err = u.repos.UserRepo.GetByID(ctx, input.UserID, input.Password)
 		if err != nil {
 			logger.Error(fmt.Errorf("find user data failed for user %s: %w", input.UserID, err))
 			return Tokens{}, nil, fmt.Errorf("find user data failed: %w", err)

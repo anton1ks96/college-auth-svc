@@ -30,7 +30,6 @@ func (h *Handler) Init(api *gin.RouterGroup) {
 		user := v1.Group("/users")
 		{
 			user.POST("/signin", h.signIn)
-			//user.POST("/testsignin", h.signInTest)
 			user.POST("/signout", h.signOut)
 			user.POST("/refresh", h.refreshTokens)
 		}

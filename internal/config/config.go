@@ -30,6 +30,7 @@ type (
 	App struct {
 		Test bool
 	}
+
 	LimiterConfig struct {
 		RPS   int
 		Burst int
@@ -37,10 +38,7 @@ type (
 	}
 
 	LDAPConfig struct {
-		URL          string
-		BaseDN       string
-		BindPassword string
-		BindUsername string
+		URL string
 	}
 
 	MongoConfig struct {
@@ -95,8 +93,8 @@ func setFromEnv(cfg *Config) error {
 	cfg.Mongo.CollName = os.Getenv("MONGODB_CNAME")
 	cfg.JWT.SigningKey = os.Getenv("SIGNING_KEY")
 	cfg.LDAP.URL = os.Getenv("LDAP_URL")
-	cfg.LDAP.BindPassword = os.Getenv("BIND_PASSWORD")
-	cfg.LDAP.BindUsername = os.Getenv("BIND_USERNAME")
+	//cfg.LDAP.BindPassword = os.Getenv("BIND_PASSWORD")
+	//cfg.LDAP.BindUsername = os.Getenv("BIND_USERNAME")
 
 	if cfg.Mongo.URI == "" {
 		return errors.New("MONGODB_URI environment variable is required")
@@ -107,12 +105,12 @@ func setFromEnv(cfg *Config) error {
 	if cfg.LDAP.URL == "" {
 		return errors.New("LDAP_URL environment variable is required")
 	}
-	if cfg.LDAP.BindPassword == "" {
-		return errors.New("BIND_PASSWORD environment variable is required")
-	}
-	if cfg.LDAP.BindUsername == "" {
-		return errors.New("BIND_USERNAME environment variable is required")
-	}
+	//if cfg.LDAP.BindPassword == "" {
+	//	return errors.New("BIND_PASSWORD environment variable is required")
+	//}
+	//if cfg.LDAP.BindUsername == "" {
+	//	return errors.New("BIND_USERNAME environment variable is required")
+	//}
 
 	return nil
 }

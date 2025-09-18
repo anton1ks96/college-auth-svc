@@ -53,8 +53,8 @@ func (h *Handler) signIn(c *gin.Context) {
 		int(accessTTL.Seconds()),
 		"/",
 		"",
-		true,
-		true,
+		false,
+		false,
 	)
 
 	c.SetCookie(
@@ -63,8 +63,8 @@ func (h *Handler) signIn(c *gin.Context) {
 		int(refreshTTL.Seconds()),
 		"/",
 		"",
-		true,
-		true,
+		false,
+		false,
 	)
 
 	c.JSON(http.StatusOK, gin.H{
