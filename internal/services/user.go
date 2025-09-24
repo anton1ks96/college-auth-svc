@@ -95,12 +95,14 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 	}
 
 	session := domain.RefreshSession{
-		JTI:       jti,
-		UserID:    input.UserID,
-		Username:  user.Username,
-		Role:      user.Role,
-		ExpiresAt: time.Now().Add(u.refreshTokenTTL),
-		CreatedAt: time.Now(),
+		JTI:           jti,
+		UserID:        input.UserID,
+		Username:      user.Username,
+		Role:          user.Role,
+		AcademicGroup: "",
+		Profile:       "",
+		ExpiresAt:     time.Now().Add(u.refreshTokenTTL),
+		CreatedAt:     time.Now(),
 	}
 
 	if err := u.repos.SessionRepo.SaveRefreshToken(ctx, &session); err != nil {
@@ -202,12 +204,14 @@ func (u *UserService) RefreshTokens(ctx context.Context, refreshToken string) (T
 	}
 
 	newSession := domain.RefreshSession{
-		JTI:       newJti,
-		UserID:    userID,
-		Username:  user.Username,
-		Role:      user.Role,
-		ExpiresAt: time.Now().Add(u.refreshTokenTTL),
-		CreatedAt: time.Now(),
+		JTI:           newJti,
+		UserID:        userID,
+		Username:      user.Username,
+		Role:          user.Role,
+		AcademicGroup: "",
+		Profile:       "",
+		ExpiresAt:     time.Now().Add(u.refreshTokenTTL),
+		CreatedAt:     time.Now(),
 	}
 
 	if err := u.repos.SessionRepo.ReplaceRefreshToken(ctx, oldJti, &newSession); err != nil {

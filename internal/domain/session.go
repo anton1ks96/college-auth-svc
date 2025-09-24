@@ -5,10 +5,12 @@ import (
 )
 
 type RefreshSession struct {
-	JTI       string    `json:"jti" bson:"jti"`
-	UserID    string    `json:"userid" bson:"userid"`
-	Username  string    `json:"username" bson:"username"`
-	Role      string    `json:"role" bson:"role"`
-	ExpiresAt time.Time `json:"expires_at" bson:"expires_at"`
-	CreatedAt time.Time `json:"created_at" bson:"created_at"`
+	JTI           string    `json:"jti" bson:"jti"`
+	UserID        string    `json:"userid" bson:"userid"`
+	Username      string    `json:"username" bson:"username"`
+	Role          string    `json:"role" bson:"role"`
+	AcademicGroup string    `json:"academic_group,omitempty" bson:"academic_group,omitempty"`
+	Profile       string    `json:"profile,omitempty" bson:"profile,omitempty"`
+	ExpiresAt     time.Time `json:"expires_at" bson:"expires_at"`
+	CreatedAt     time.Time `json:"created_at" bson:"created_at"`
 }

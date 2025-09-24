@@ -21,4 +21,5 @@ type SessionMongoRepository interface {
 	TokenExists(ctx context.Context, jti string) (bool, error)
 	ReplaceRefreshToken(ctx context.Context, oldJTI string, newSession *domain.RefreshSession) error
 	GetUserByID(ctx context.Context, userID string) (*domain.User, error)
+	GetExtendedUserByID(ctx context.Context, userID string) (*domain.UserExtended, error)
 }

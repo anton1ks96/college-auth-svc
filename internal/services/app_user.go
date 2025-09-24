@@ -54,6 +54,7 @@ func (a *AppUserService) SignIn(ctx context.Context, input SignInInput) (Tokens,
 		userExtended = &domain.UserExtended{
 			ID:            input.UserID,
 			Username:      "i24s0291",
+			Role:          "student",
 			AcademicGroup: "ИТ25-11",
 			Profile:       "BE",
 		}
@@ -84,6 +85,7 @@ func (a *AppUserService) SignIn(ctx context.Context, input SignInInput) (Tokens,
 		userExtended = &domain.UserExtended{
 			ID:            user.ID,
 			Username:      user.Username,
+			Role:          user.Role,
 			AcademicGroup: academicGroup,
 			Profile:       profile,
 		}
@@ -102,12 +104,14 @@ func (a *AppUserService) SignIn(ctx context.Context, input SignInInput) (Tokens,
 	}
 
 	session := domain.RefreshSession{
-		JTI:       jti,
-		UserID:    input.UserID,
-		Username:  user.Username,
-		Role:      user.Role,
-		ExpiresAt: time.Now().Add(a.refreshTokenTTL),
-		CreatedAt: time.Now(),
+		JTI:           jti,
+		UserID:        input.UserID,
+		Username:      user.Username,
+		Role:          userExtended.Role,
+		AcademicGroup: userExtended.AcademicGroup,
+		Profile:       userExtended.Profile,
+		ExpiresAt:     time.Now().Add(a.refreshTokenTTL),
+		CreatedAt:     time.Now(),
 	}
 
 	if err := a.repos.SessionRepo.SaveRefreshToken(ctx, &session); err != nil {
@@ -183,10 +187,16 @@ func (a *AppUserService) RefreshTokens(ctx context.Context, refreshToken string)
 
 	var user *domain.User
 
-	user, err = a.repos.SessionRepo.GetUserByID(ctx, userID)
+	userExtended, err := a.repos.SessionRepo.GetExtendedUserByID(ctx, userID)
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to get user data from session for ID %s: %w", userID, err))
+		logger.Error(fmt.Errorf("failed to get extended user data from session for ID %s: %w", userID, err))
 		return Tokens{}, fmt.Errorf("failed to get user data: %w", err)
+	}
+
+	user = &domain.User{
+		ID:       userExtended.ID,
+		Username: userExtended.Username,
+		Role:     userExtended.Role,
 	}
 
 	tokens, err := a.generateTokens(user)
@@ -202,12 +212,14 @@ func (a *AppUserService) RefreshTokens(ctx context.Context, refreshToken string)
 	}
 
 	newSession := domain.RefreshSession{
-		JTI:       newJti,
-		UserID:    userID,
-		Username:  user.Username,
-		Role:      user.Role,
-		ExpiresAt: time.Now().Add(a.refreshTokenTTL),
-		CreatedAt: time.Now(),
+		JTI:           newJti,
+		UserID:        userID,
+		Username:      userExtended.Username,
+		Role:          userExtended.Role,
+		AcademicGroup: userExtended.AcademicGroup,
+		Profile:       userExtended.Profile,
+		ExpiresAt:     time.Now().Add(a.refreshTokenTTL),
+		CreatedAt:     time.Now(),
 	}
 
 	if err := a.repos.SessionRepo.ReplaceRefreshToken(ctx, oldJti, &newSession); err != nil {
@@ -243,15 +255,10 @@ func (a *AppUserService) ValidateAccessToken(ctx context.Context, accessToken st
 		return nil, err
 	}
 
-	user, err := a.repos.SessionRepo.GetUserByID(ctx, userID)
+	userExtended, err := a.repos.SessionRepo.GetExtendedUserByID(ctx, userID)
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to get user data from session for ID %s: %w", userID, err))
+		logger.Error(fmt.Errorf("failed to get extended user data from session for ID %s: %w", userID, err))
 		return nil, fmt.Errorf("failed to get user data: %w", err)
-	}
-
-	userExtended := &domain.UserExtended{
-		ID:       user.ID,
-		Username: user.Username,
 	}
 
 	return userExtended, nil

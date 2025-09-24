@@ -9,6 +9,7 @@ type User struct {
 type UserExtended struct {
 	ID            string `json:"id"`
 	Username      string `json:"username"`
+	Role          string `json:"role"`
 	AcademicGroup string `json:"academic_group"`
 	Profile       string `json:"profile,omitempty"`
 }
