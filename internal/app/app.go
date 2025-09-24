@@ -42,9 +42,6 @@ func Run() {
 
 	srv := server.NewServer(cfg, router)
 
-	//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	//defer cancel()
-
 	if err := srv.Run(); err != nil {
 		logger.Fatal(err)
 	}

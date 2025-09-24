@@ -30,7 +30,8 @@ type User interface {
 }
 
 type Services struct {
-	UserService User
+	UserService    User
+	AppUserService AppUser
 }
 
 type Repositories struct {
@@ -56,8 +57,10 @@ func NewServices(deps Deps) *Services {
 	}
 
 	userService := NewUserService(*deps.TokenManager, *deps.Repos, accessTTL, refreshTTL, &deps.Config.App)
+	appUserService := NewAppUserService(*deps.TokenManager, *deps.Repos, accessTTL, refreshTTL, &deps.Config.App)
 
 	return &Services{
-		UserService: userService,
+		UserService:    userService,
+		AppUserService: appUserService,
 	}
 }

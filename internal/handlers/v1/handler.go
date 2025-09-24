@@ -38,6 +38,15 @@ func (h *Handler) Init(api *gin.RouterGroup) {
 		{
 			authenticated.POST("/validate", h.validateToken)
 		}
+
+		app := v1.Group("/app")
+		{
+			app.POST("/signin", h.appSignIn)
+			app.POST("/signout", h.appSignOut)
+			app.POST("/refresh", h.appRefreshTokens)
+			app.POST("/validate", h.appValidateToken)
+			app.GET("/user", h.appUserInfo)
+		}
 	}
 }
 
