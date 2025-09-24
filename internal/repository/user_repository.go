@@ -118,3 +118,81 @@ func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (
 
 	return user, nil
 }
+
+func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass string) (academicGroup, profile string, err error) {
+	if ctx.Err() != nil {
+		logger.Error(fmt.Errorf("context cancelled during group retrieval for user %s: %w", userID, ctx.Err()))
+		return "", "", ctx.Err()
+	}
+
+	l, err := ldap.DialURL(u.cfg.LDAP.URL)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to connect to LDAP server %s for group lookup: %w", u.cfg.LDAP.URL, err))
+		return "", "", fmt.Errorf("LDAP connection failed")
+	}
+	defer l.Close()
+
+	var userDN string
+	if !strings.HasPrefix(userID, "t") {
+		userDN = fmt.Sprintf("uid=%s,ou=people,dc=it-college,dc=ru", userID)
+	} else {
+		userDN = fmt.Sprintf("uid=%s,ou=teachers,dc=it-college,dc=ru", userID)
+	}
+
+	if err := l.Bind(userDN, userPass); err != nil {
+		logger.Error(fmt.Errorf("failed to bind for group lookup: %w", err))
+		return "", "", fmt.Errorf("authentication failed")
+	}
+
+	searchFilter := fmt.Sprintf(
+		"(&(|(objectClass=groupOfNames)(objectClass=posixGroup)(objectClass=group))"+
+			"(|(member=%s)(memberUid=%s)))",
+		ldap.EscapeFilter(userDN),
+		ldap.EscapeFilter(userID),
+	)
+
+	searchRequest := ldap.NewSearchRequest(
+		"ou=groups,dc=it-college,dc=ru",
+		ldap.ScopeWholeSubtree,
+		ldap.NeverDerefAliases,
+		0,
+		0,
+		false,
+		searchFilter,
+		[]string{"cn", "description"},
+		nil,
+	)
+
+	sr, err := l.Search(searchRequest)
+	if err != nil {
+		logger.Error(fmt.Errorf("LDAP group search failed for user %s: %w", userID, err))
+		return "", "", fmt.Errorf("group search failed")
+	}
+
+	for _, entry := range sr.Entries {
+		cn := entry.GetAttributeValue("cn")
+		description := entry.GetAttributeValue("description")
+
+		if description == "Академическая группа" && strings.HasPrefix(cn, "ИТ") {
+			academicGroup = cn
+			logger.Debug(fmt.Sprintf("found academic group for user %s: %s", userID, cn))
+		}
+
+		if description == "Профиль" {
+			validProfiles := map[string]bool{
+				"BE": true, "FE": true, "PM": true,
+				"CD": true, "GD": true, "SA": true,
+			}
+			if validProfiles[cn] {
+				profile = cn
+				logger.Debug(fmt.Sprintf("found profile for user %s: %s", userID, cn))
+			}
+		}
+	}
+
+	if !strings.HasPrefix(userID, "t") && academicGroup == "" {
+		logger.Warn(fmt.Sprintf("no academic group found for student %s", userID))
+	}
+
+	return academicGroup, profile, nil
+}
