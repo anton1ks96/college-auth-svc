@@ -47,6 +47,11 @@ func (h *Handler) Init(api *gin.RouterGroup) {
 			app.POST("/validate", h.appValidateToken)
 			app.GET("/user", h.appUserInfo)
 		}
+
+		students := v1.Group("/students")
+		{
+			students.POST("/search", h.searchStudents)
+		}
 	}
 }
 

@@ -44,3 +44,7 @@ type AppValidateResponse struct {
 	Valid bool        `json:"valid"`
 	User  AppUserInfo `json:"user,omitempty"`
 }
+
+type StudentSearchRequest struct {
+	Query string `json:"query"`
+}
