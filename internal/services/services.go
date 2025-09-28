@@ -59,7 +59,7 @@ func NewServices(deps Deps) *Services {
 
 	userService := NewUserService(*deps.TokenManager, *deps.Repos, accessTTL, refreshTTL, &deps.Config.App)
 	appUserService := NewAppUserService(*deps.TokenManager, *deps.Repos, accessTTL, refreshTTL, &deps.Config.App)
-	studentService := NewStudentService(deps.Config)
+	studentService := NewStudentService(deps.Config, &deps.Config.App)
 
 	return &Services{
 		UserService:    userService,

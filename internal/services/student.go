@@ -16,12 +16,14 @@ type StudentService interface {
 }
 
 type StudentServiceImpl struct {
-	cfg *config.Config
+	cfg    *config.Config
+	appCfg *config.App
 }
 
-func NewStudentService(cfg *config.Config) *StudentServiceImpl {
+func NewStudentService(cfg *config.Config, appCfg *config.App) *StudentServiceImpl {
 	return &StudentServiceImpl{
-		cfg: cfg,
+		cfg:    cfg,
+		appCfg: appCfg,
 	}
 }
 
@@ -32,6 +34,13 @@ func (s *StudentServiceImpl) SearchStudents(ctx context.Context, query string) (
 
 	if query == "" {
 		return []domain.StudentInfo{}, nil
+	}
+
+	if s.appCfg.Test {
+		return []domain.StudentInfo{
+			{ID: "i24s0291", Username: "Коломацкий Иван"},
+			{ID: "i24s0002", Username: "Джапаридзе Артем"},
+		}, nil
 	}
 
 	l, err := ldap.DialURL(s.cfg.LDAP.URL)
