@@ -66,7 +66,7 @@ func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (
 	if !strings.HasPrefix(userID, "t") {
 		dn = fmt.Sprintf("uid=%s,ou=people,dc=it-college,dc=ru", userID)
 	} else {
-		dn = fmt.Sprintf("uid=%s,ou=teachers,dc=it-college,dc=ru", userID)
+		dn = fmt.Sprintf("uid=%s,ou=Teachers,dc=it-college,dc=ru", userID)
 	}
 
 	if err := l.Bind(dn, userPass); err != nil {

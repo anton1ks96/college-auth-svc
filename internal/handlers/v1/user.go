@@ -54,7 +54,7 @@ func (h *Handler) signIn(c *gin.Context) {
 		"/",
 		"",
 		false,
-		false,
+		true,
 	)
 
 	c.SetCookie(
@@ -64,7 +64,7 @@ func (h *Handler) signIn(c *gin.Context) {
 		"/",
 		"",
 		false,
-		false,
+		true,
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -96,7 +96,7 @@ func (h *Handler) signOut(c *gin.Context) {
 	}
 
 	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
-	c.SetCookie("access_token", "", -1, "/", "", false, false)
+	c.SetCookie("access_token", "", -1, "/", "", false, true)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "successfully signed out",
@@ -134,7 +134,7 @@ func (h *Handler) refreshTokens(c *gin.Context) {
 		int(accessTTL.Seconds()),
 		"/",
 		"",
-		true,
+		false,
 		true,
 	)
 
