@@ -13,6 +13,7 @@ import (
 
 type StudentService interface {
 	SearchStudents(ctx context.Context, query string) ([]domain.StudentInfo, error)
+	SearchTeachers(ctx context.Context, query string) ([]domain.StudentInfo, error)
 }
 
 type StudentServiceImpl struct {
@@ -88,4 +89,67 @@ func (s *StudentServiceImpl) SearchStudents(ctx context.Context, query string) (
 	}
 
 	return students, nil
+}
+
+func (s *StudentServiceImpl) SearchTeachers(ctx context.Context, query string) ([]domain.StudentInfo, error) {
+	if ctx.Err() != nil {
+		return []domain.StudentInfo{}, nil
+	}
+
+	if query == "" {
+		return []domain.StudentInfo{}, nil
+	}
+
+	if s.appCfg.Test {
+		return []domain.StudentInfo{
+			{ID: "t001", Username: "Преподаватель Иван"},
+			{ID: "t002", Username: "Преподаватель Артем"},
+		}, nil
+	}
+
+	l, err := ldap.DialURL(s.cfg.LDAP.URL)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to connect to LDAP: %w", err))
+		return nil, fmt.Errorf("LDAP connection failed")
+	}
+	defer l.Close()
+
+	filter := fmt.Sprintf(
+		"(&(objectClass=person)(!(uid=t*))(|(uid=*%s*)(cn=*%s*)))",
+		ldap.EscapeFilter(query),
+		ldap.EscapeFilter(query),
+	)
+
+	searchRequest := ldap.NewSearchRequest(
+		"ou=Teachers,dc=it-college,dc=ru",
+		ldap.ScopeWholeSubtree,
+		ldap.NeverDerefAliases,
+		50,
+		0,
+		false,
+		filter,
+		[]string{"uid", "cn"},
+		nil,
+	)
+
+	sr, err := l.Search(searchRequest)
+	if err != nil {
+		logger.Error(fmt.Errorf("LDAP search failed: %w", err))
+		return nil, fmt.Errorf("search failed")
+	}
+
+	var teachers []domain.StudentInfo
+	for _, entry := range sr.Entries {
+		uid := entry.GetAttributeValue("uid")
+		cn := entry.GetAttributeValue("cn")
+
+		if uid != "" && cn != "" {
+			teachers = append(teachers, domain.StudentInfo{
+				ID:       uid,
+				Username: cn,
+			})
+		}
+	}
+
+	return teachers, nil
 }

@@ -48,9 +48,10 @@ func (h *Handler) Init(api *gin.RouterGroup) {
 			app.GET("/user", h.appUserInfo)
 		}
 
-		students := v1.Group("/students")
+		search := v1.Group("/search")
 		{
-			students.POST("/search", h.searchStudents)
+			search.POST("/students", h.searchStudents)
+			search.POST("/search", h.searchTeachers)
 		}
 	}
 }
