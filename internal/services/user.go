@@ -65,6 +65,13 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 				Username: "Преподаватель Иван",
 				Role:     "teacher",
 			}
+
+		case "t002":
+			user = &domain.User{
+				ID:       input.UserID,
+				Username: "Преподаватель Артем",
+				Role:     "teacher",
+			}
 		default:
 			user = &domain.User{
 				ID:       input.UserID,
