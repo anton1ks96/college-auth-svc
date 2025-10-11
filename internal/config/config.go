@@ -19,6 +19,7 @@ type (
 		JWT     JWTConfig
 		LDAP    LDAPConfig
 		App     App
+		Tokens  Tokens
 	}
 	Server struct {
 		Port           string
@@ -51,6 +52,10 @@ type (
 		AccessTokenTTL  string
 		RefreshTokenTTL string
 		SigningKey      string
+	}
+
+	Tokens struct {
+		InternalToken string
 	}
 )
 
@@ -104,6 +109,10 @@ func setFromEnv(cfg *Config) error {
 	}
 	if cfg.LDAP.URL == "" {
 		return errors.New("LDAP_URL environment variable is required")
+	}
+	cfg.Tokens.InternalToken = os.Getenv("INTERNAL_SERVICE_TOKEN")
+	if cfg.Tokens.InternalToken == "" {
+		return errors.New("INTERNAL_SERVICE_TOKEN environment variable is required")
 	}
 	//if cfg.LDAP.BindPassword == "" {
 	//	return errors.New("BIND_PASSWORD environment variable is required")

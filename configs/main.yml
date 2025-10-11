@@ -5,7 +5,7 @@ server:
   writeTimeout: 7s
 
 app:
-  test: false
+  test: true
 
 jwt:
   accessTokenTTL: 72h

@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+
 	"github.com/anton1ks96/college-auth-svc/internal/config"
 	"github.com/anton1ks96/college-auth-svc/internal/handlers"
 	"github.com/anton1ks96/college-auth-svc/internal/repository"
@@ -41,6 +43,8 @@ func Run() {
 	router := handler.Init()
 
 	srv := server.NewServer(cfg, router)
+
+	logger.Info(fmt.Sprintf("College Auth Service started - PORT: %s", cfg.Server.Port))
 
 	if err := srv.Run(); err != nil {
 		logger.Fatal(err)

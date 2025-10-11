@@ -1,10 +1,10 @@
 # College Authentication Service
 
-Go service for authentication of students, teachers, and college administrators.
+Go service for authentication of teachers, teachers, and college administrators.
 
 ## Description
 
-This service implements authentication and authorization for users (students, teachers) in the college's
+This service implements authentication and authorization for users (teachers, teachers) in the college's
 internal system. MongoDB is used to store user data.
 
 ## Features

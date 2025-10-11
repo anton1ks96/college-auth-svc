@@ -52,10 +52,32 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 	var err error
 
 	if u.cfg.Test {
-		user = &domain.User{
-			ID:       input.UserID,
-			Username: "Vasiliy Testov",
-			Role:     "student",
+		switch input.UserID {
+		case "admin1":
+			user = &domain.User{
+				ID:       input.UserID,
+				Username: "Петр Администраторов",
+				Role:     "admin",
+			}
+		case "t001":
+			user = &domain.User{
+				ID:       input.UserID,
+				Username: "Преподаватель Иван",
+				Role:     "teacher",
+			}
+
+		case "t002":
+			user = &domain.User{
+				ID:       input.UserID,
+				Username: "Преподаватель Артем",
+				Role:     "teacher",
+			}
+		default:
+			user = &domain.User{
+				ID:       input.UserID,
+				Username: "Василий Студентов",
+				Role:     "student",
+			}
 		}
 	} else {
 		if err := u.repos.UserRepo.Authentication(ctx, input.UserID, input.Password); err != nil {
