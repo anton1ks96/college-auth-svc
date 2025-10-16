@@ -53,29 +53,30 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 
 	if u.cfg.Test {
 		switch input.UserID {
-		case "admin1":
+		case "admin":
 			user = &domain.User{
 				ID:       input.UserID,
-				Username: "Петр Администраторов",
+				Username: "Администратор 1",
 				Role:     "admin",
 			}
+
 		case "t001":
 			user = &domain.User{
 				ID:       input.UserID,
-				Username: "Преподаватель Иван",
+				Username: "Преподаватель 1",
 				Role:     "teacher",
 			}
 
 		case "t002":
 			user = &domain.User{
 				ID:       input.UserID,
-				Username: "Преподаватель Артем",
+				Username: "Преподаватель 2",
 				Role:     "teacher",
 			}
 		default:
 			user = &domain.User{
 				ID:       input.UserID,
-				Username: "Василий Студентов",
+				Username: "Студент Обыкновенный",
 				Role:     "student",
 			}
 		}

@@ -102,8 +102,8 @@ func (s *StudentServiceImpl) SearchTeachers(ctx context.Context, query string) (
 
 	if s.appCfg.Test {
 		return []domain.StudentInfo{
-			{ID: "t001", Username: "Преподаватель Иван"},
-			{ID: "t002", Username: "Преподаватель Артем"},
+			{ID: "t001", Username: "Преподаватель 1"},
+			{ID: "t002", Username: "Преподаватель 2"},
 		}, nil
 	}
 

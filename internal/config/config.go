@@ -98,8 +98,6 @@ func setFromEnv(cfg *Config) error {
 	cfg.Mongo.CollName = os.Getenv("MONGODB_CNAME")
 	cfg.JWT.SigningKey = os.Getenv("SIGNING_KEY")
 	cfg.LDAP.URL = os.Getenv("LDAP_URL")
-	//cfg.LDAP.BindPassword = os.Getenv("BIND_PASSWORD")
-	//cfg.LDAP.BindUsername = os.Getenv("BIND_USERNAME")
 
 	if cfg.Mongo.URI == "" {
 		return errors.New("MONGODB_URI environment variable is required")
