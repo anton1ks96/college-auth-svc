@@ -20,10 +20,11 @@ type AppUserInfo struct {
 }
 
 type AppSignInResponse struct {
-	AccessToken  string      `json:"access_token"`
-	RefreshToken string      `json:"refresh_token"`
-	ExpiresIn    int         `json:"expires_in"`
-	User         AppUserInfo `json:"user"`
+	AccessToken      string      `json:"access_token"`
+	RefreshToken     string      `json:"refresh_token"`
+	AccessExpiresIn  int         `json:"access_expires_in"`
+	RefreshExpiresIn int         `json:"refresh_expires_in"`
+	User             AppUserInfo `json:"user"`
 }
 
 type AppRefreshRequest struct {
@@ -31,7 +32,6 @@ type AppRefreshRequest struct {
 }
 
 type AppRefreshResponse struct {
-	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	ExpiresIn    int    `json:"expires_in"`
 }
@@ -47,4 +47,13 @@ type AppValidateResponse struct {
 
 type StudentSearchRequest struct {
 	Query string `json:"query"`
+}
+
+type AppGetAccessRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+type AppGetAccessTokenResponse struct {
+	AccessToken string `json:"access_token"`
+	ExpiresIn   int    `json:"expires_in"`
 }
