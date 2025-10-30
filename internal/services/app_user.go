@@ -15,7 +15,7 @@ type AppUser interface {
 	SignIn(ctx context.Context, input SignInInput) (Tokens, *domain.UserExtended, error)
 	SignOut(ctx context.Context, refreshToken string) error
 	RefreshToken(ctx context.Context, refreshToken string) (string, error)
-	GetAccessToken(ctx context.Context, refreshToken string) (string, error)
+	GetAccessToken(ctx context.Context, refreshToken string) (string, *domain.UserExtended, error)
 	ValidateAccessToken(ctx context.Context, token string) (*domain.UserExtended, error)
 }
 
@@ -254,48 +254,48 @@ func (a *AppUserService) ValidateAccessToken(ctx context.Context, accessToken st
 	return userExtended, nil
 }
 
-func (a *AppUserService) GetAccessToken(ctx context.Context, refreshToken string) (string, error) {
+func (a *AppUserService) GetAccessToken(ctx context.Context, refreshToken string) (string, *domain.UserExtended, error) {
 	if ctx.Err() != nil {
-		return "", ctx.Err()
+		return "", nil, ctx.Err()
 	}
 
 	if refreshToken == "" {
 		logger.Error(fmt.Errorf("empty refresh token"))
-		return "", fmt.Errorf("empty refresh token")
+		return "", nil, fmt.Errorf("empty refresh token")
 	}
 
 	if err := a.tokenManager.ValidateRefreshToken(refreshToken); err != nil {
 		logger.Warn(fmt.Sprintf("invalid refresh token structure: %v", err))
-		return "", fmt.Errorf("invalid token")
+		return "", nil, fmt.Errorf("invalid token")
 	}
 
 	userID, err := a.tokenManager.ExtractClaim(refreshToken, "user_id")
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract user_id from token: %w", err))
-		return "", fmt.Errorf("invalid token claims")
+		return "", nil, fmt.Errorf("invalid token claims")
 	}
 
 	jti, err := a.tokenManager.ExtractClaim(refreshToken, "jti")
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to extract jti from token: %w", err))
-		return "", fmt.Errorf("invalid token claims")
+		return "", nil, fmt.Errorf("invalid token claims")
 	}
 
 	tokenExists, err := a.repos.SessionRepo.TokenExists(ctx, jti)
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to check token existence: %w", err))
-		return "", fmt.Errorf("authentication service unavailable")
+		return "", nil, fmt.Errorf("authentication service unavailable")
 	}
 
 	if !tokenExists {
 		logger.Warn(fmt.Sprintf("attempt to use non-existent refresh token: jti=%s, user=%s", jti, userID))
-		return "", fmt.Errorf("token not found or already used")
+		return "", nil, fmt.Errorf("token not found or already used")
 	}
 
 	userExtended, err := a.repos.SessionRepo.GetExtendedUserByID(ctx, userID)
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to get extended user data from session for ID %s: %w", userID, err))
-		return "", fmt.Errorf("failed to get user data: %w", err)
+		return "", nil, fmt.Errorf("failed to get user data: %w", err)
 	}
 
 	user := &domain.User{
@@ -307,10 +307,10 @@ func (a *AppUserService) GetAccessToken(ctx context.Context, refreshToken string
 	accessToken, err := a.tokenManager.NewAccessToken(user.ID, user.Username, user.Role)
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to generate access token for user %s: %w", user.ID, err))
-		return "", fmt.Errorf("failed to generate access token: %w", err)
+		return "", nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	return accessToken, nil
+	return accessToken, userExtended, nil
 }
 
 func (a *AppUserService) generateTokens(user *domain.User) (Tokens, error) {

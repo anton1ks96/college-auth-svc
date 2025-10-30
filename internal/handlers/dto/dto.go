@@ -54,6 +54,7 @@ type AppGetAccessRequest struct {
 }
 
 type AppGetAccessTokenResponse struct {
-	AccessToken string `json:"access_token"`
-	ExpiresIn   int    `json:"expires_in"`
+	AccessToken string      `json:"access_token"`
+	ExpiresIn   int         `json:"expires_in"`
+	User        AppUserInfo `json:"user"`
 }

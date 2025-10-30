@@ -97,7 +97,7 @@ func (h *Handler) appGetAccess(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := h.services.AppUserService.GetAccessToken(c.Request.Context(), req.RefreshToken)
+	accessToken, user, err := h.services.AppUserService.GetAccessToken(c.Request.Context(), req.RefreshToken)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error":   "failed to get access token",
@@ -117,6 +117,13 @@ func (h *Handler) appGetAccess(c *gin.Context) {
 	response := dto.AppGetAccessTokenResponse{
 		AccessToken: accessToken,
 		ExpiresIn:   int(accessTTL.Seconds()),
+		User: dto.AppUserInfo{
+			ID:            user.ID,
+			Username:      user.Username,
+			Role:          user.Role,
+			AcademicGroup: user.AcademicGroup,
+			Profile:       user.Profile,
+		},
 	}
 
 	c.JSON(http.StatusOK, response)
