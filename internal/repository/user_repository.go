@@ -37,12 +37,12 @@ func (u *UserRepository) Authentication(ctx context.Context, userID, userPass st
 	if !strings.HasPrefix(userID, "t") {
 		dn = fmt.Sprintf("uid=%s,ou=people,dc=it-college,dc=ru", userID)
 	} else {
-		dn = fmt.Sprintf("uid=%s,ou=Teachers,dc=it-college,dc=ru", userID)
+		dn = fmt.Sprintf("uid=%s,ou=people,ou=Teachers,dc=it-college,dc=ru", userID)
 	}
 
 	if err := l.Bind(dn, userPass); err != nil {
 		logger.Warn(fmt.Sprintf("LDAP authentication failed for user %s with DN %s", userID, dn))
-		return fmt.Errorf("authentication failed")
+		return fmt.Errorf("authentication failed: %s", err.Error())
 	}
 
 	return nil
@@ -61,12 +61,14 @@ func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (
 	}
 	defer l.Close()
 
-	var dn string
+	var dn, baseDN string
 
 	if !strings.HasPrefix(userID, "t") {
 		dn = fmt.Sprintf("uid=%s,ou=people,dc=it-college,dc=ru", userID)
+		baseDN = "ou=people,dc=it-college,dc=ru"
 	} else {
-		dn = fmt.Sprintf("uid=%s,ou=Teachers,dc=it-college,dc=ru", userID)
+		dn = fmt.Sprintf("uid=%s,ou=people,ou=Teachers,dc=it-college,dc=ru", userID)
+		baseDN = "ou=people,ou=Teachers,dc=it-college,dc=ru"
 	}
 
 	if err := l.Bind(dn, userPass); err != nil {
@@ -77,7 +79,7 @@ func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (
 	searchFilter := fmt.Sprintf("(uid=%s)", ldap.EscapeFilter(userID))
 
 	userReq := ldap.NewSearchRequest(
-		dn,
+		baseDN,
 		ldap.ScopeWholeSubtree,
 		ldap.NeverDerefAliases,
 		0,
@@ -90,7 +92,7 @@ func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (
 
 	sr, err := l.Search(userReq)
 	if err != nil {
-		logger.Error(fmt.Errorf("LDAP search failed for user %s with filter %s: %w", userID, searchFilter, err))
+		logger.Error(fmt.Errorf("LDAP search failed for user %s with filter %s in baseDN %s: %w", userID, searchFilter, baseDN, err))
 		return nil, fmt.Errorf("user search failed")
 	}
 
@@ -110,10 +112,16 @@ func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (
 	}
 
 	entry := sr.Entries[0]
+
+	uid := entry.GetAttributeValue("uid")
+	cn := entry.GetAttributeValue("cn")
+	employeeType := entry.GetAttributeValue("employeeType")
+
+
 	user := &domain.User{
-		ID:       entry.GetAttributeValue("uid"),
-		Username: entry.GetAttributeValue("cn"),
-		Role:     entry.GetAttributeValue("employeeType"),
+		ID:       uid,
+		Username: cn,
+		Role:     employeeType,
 	}
 
 	return user, nil
@@ -136,11 +144,11 @@ func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass str
 	if !strings.HasPrefix(userID, "t") {
 		userDN = fmt.Sprintf("uid=%s,ou=people,dc=it-college,dc=ru", userID)
 	} else {
-		userDN = fmt.Sprintf("uid=%s,ou=teachers,dc=it-college,dc=ru", userID)
+		userDN = fmt.Sprintf("uid=%s,ou=people,ou=Teachers,dc=it-college,dc=ru", userID)
 	}
 
 	if err := l.Bind(userDN, userPass); err != nil {
-		logger.Error(fmt.Errorf("failed to bind for group lookup: %w", err))
+		logger.Error(fmt.Errorf("failed to bind for group lookup with DN %s: %w", userDN, err))
 		return "", "", fmt.Errorf("authentication failed")
 	}
 

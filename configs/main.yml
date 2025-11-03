@@ -5,13 +5,8 @@ server:
   writeTimeout: 7s
 
 app:
-  test: true
+  test: false
 
 jwt:
   accessTokenTTL: 72h
   refreshTokenTTL: 720h
-
-limiter:
-  rps: 4
-  burst: 10
-  ttl: 10m
