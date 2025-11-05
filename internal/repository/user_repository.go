@@ -32,16 +32,16 @@ func (u *UserRepository) Authentication(ctx context.Context, userID, userPass st
 	}
 	defer l.Close()
 
-	var dn string
-
-	if !strings.HasPrefix(userID, "t") {
-		dn = fmt.Sprintf("uid=%s,ou=people,dc=it-college,dc=ru", userID)
-	} else {
-		dn = fmt.Sprintf("uid=%s,ou=people,ou=Teachers,dc=it-college,dc=ru", userID)
+	userDN, err := u.findUserDN(l, userID)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to find DN for user %s: %w", userID, err))
+		return fmt.Errorf("user not found")
 	}
 
-	if err := l.Bind(dn, userPass); err != nil {
-		logger.Warn(fmt.Sprintf("LDAP authentication failed for user %s with DN %s", userID, dn))
+	logger.Debug(fmt.Sprintf("Found DN for user %s: %s", userID, userDN))
+
+	if err := l.Bind(userDN, userPass); err != nil {
+		logger.Warn(fmt.Sprintf("LDAP authentication failed for user %s with DN %s", userID, userDN))
 		return fmt.Errorf("authentication failed: %s", err.Error())
 	}
 
@@ -61,13 +61,18 @@ func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (
 	}
 	defer l.Close()
 
-	var dn, baseDN string
+	dn, err := u.findUserDN(l, userID)
+	if err != nil {
+		logger.Error(fmt.Errorf("failed to find DN for user %s: %w", userID, err))
+		return nil, fmt.Errorf("user not found")
+	}
 
+	logger.Debug(fmt.Sprintf("Found DN for user %s: %s", userID, dn))
+
+	var baseDN string
 	if !strings.HasPrefix(userID, "t") {
-		dn = fmt.Sprintf("uid=%s,ou=people,dc=it-college,dc=ru", userID)
 		baseDN = "ou=people,dc=it-college,dc=ru"
 	} else {
-		dn = fmt.Sprintf("uid=%s,ou=people,ou=Teachers,dc=it-college,dc=ru", userID)
 		baseDN = "ou=people,ou=Teachers,dc=it-college,dc=ru"
 	}
 
@@ -78,6 +83,8 @@ func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (
 
 	searchFilter := fmt.Sprintf("(uid=%s)", ldap.EscapeFilter(userID))
 
+	logger.Debug(fmt.Sprintf("Search filter: %s in baseDN: %s", searchFilter, baseDN))
+
 	userReq := ldap.NewSearchRequest(
 		baseDN,
 		ldap.ScopeWholeSubtree,
@@ -86,7 +93,7 @@ func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (
 		5,
 		false,
 		searchFilter,
-		[]string{"uid", "cn", "employeeType"},
+		[]string{"uid", "cn", "memberOf"},
 		nil,
 	)
 
@@ -115,13 +122,18 @@ func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (
 
 	uid := entry.GetAttributeValue("uid")
 	cn := entry.GetAttributeValue("cn")
-	employeeType := entry.GetAttributeValue("employeeType")
+	memberOfValues := entry.GetAttributeValues("memberOf")
 
+	logger.Debug(fmt.Sprintf("User %s memberOf: %v", userID, memberOfValues))
+
+	role := u.determineRole(memberOfValues, dn)
+
+	logger.Debug(fmt.Sprintf("User %s role determined as: %s", userID, role))
 
 	user := &domain.User{
 		ID:       uid,
 		Username: cn,
-		Role:     employeeType,
+		Role:     role,
 	}
 
 	return user, nil
@@ -203,4 +215,101 @@ func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass str
 	}
 
 	return academicGroup, profile, nil
+}
+
+func (u *UserRepository) findUserDN(l *ldap.Conn, userID string) (string, error) {
+	var baseDN string
+	if !strings.HasPrefix(userID, "t") {
+		baseDN = "ou=people,dc=it-college,dc=ru"
+	} else {
+		baseDN = "ou=people,ou=Teachers,dc=it-college,dc=ru"
+	}
+
+	err := l.UnauthenticatedBind("")
+	if err != nil {
+		logger.Debug(fmt.Sprintf("Anonymous bind failed, trying without bind: %v", err))
+	}
+
+	searchFilter := fmt.Sprintf("(uid=%s)", ldap.EscapeFilter(userID))
+	searchRequest := ldap.NewSearchRequest(
+		baseDN,
+		ldap.ScopeWholeSubtree,
+		ldap.NeverDerefAliases,
+		1,
+		5,
+		false,
+		searchFilter,
+		[]string{"dn"},
+		nil,
+	)
+
+	sr, err := l.Search(searchRequest)
+	if err != nil {
+		logger.Error(fmt.Errorf("LDAP search failed for user %s in baseDN %s: %w", userID, baseDN, err))
+		return "", fmt.Errorf("search failed: %w", err)
+	}
+
+	if len(sr.Entries) == 0 {
+		logger.Warn(fmt.Sprintf("user %s not found in LDAP", userID))
+		return "", fmt.Errorf("user not found")
+	}
+
+	if len(sr.Entries) > 1 {
+		logger.Warn(fmt.Sprintf("multiple entries found for user %s", userID))
+		return "", fmt.Errorf("multiple users found")
+	}
+
+	return sr.Entries[0].DN, nil
+}
+
+func (u *UserRepository) determineRole(memberOfValues []string, userDN string) string {
+	userDNLower := strings.ToLower(userDN)
+
+	isTeacherOU := strings.Contains(userDNLower, "ou=teachers")
+	isPeopleOU := strings.Contains(userDNLower, "ou=people,dc=it-college,dc=ru") && !isTeacherOU
+
+	logger.Debug(fmt.Sprintf("User DN: %s, isTeacherOU: %v, isPeopleOU: %v", userDN, isTeacherOU, isPeopleOU))
+
+	for _, memberOf := range memberOfValues {
+		if !strings.Contains(memberOf, "ou=groups,dc=it-college,dc=ru") {
+			continue
+		}
+
+		parts := strings.Split(memberOf, ",")
+		if len(parts) == 0 {
+			continue
+		}
+
+		cnPart := parts[0]
+		if !strings.HasPrefix(cnPart, "cn=") {
+			continue
+		}
+
+		cn := strings.TrimPrefix(cnPart, "cn=")
+
+		logger.Debug(fmt.Sprintf("Checking group cn=%s from memberOf", cn))
+
+		if cn == "admin" {
+			logger.Debug("User is member of admin group, role: admin")
+			return "admin"
+		}
+
+		if cn == "teachers" {
+			logger.Debug("User is member of teachers group, role: teacher")
+			return "teacher"
+		}
+
+		if isPeopleOU && strings.HasPrefix(cn, "ИТ") {
+			logger.Debug(fmt.Sprintf("User is in ou=people and member of academic group %s, role: student", cn))
+			return "student"
+		}
+	}
+
+	if isTeacherOU {
+		logger.Debug("User is in ou=Teachers with no group membership, assigning teacher role by OU location")
+		return "teacher"
+	}
+
+	logger.Warn("Role not determined from groups and DN")
+	return ""
 }
