@@ -271,7 +271,8 @@ func (u *UserRepository) determineRole(memberOfValues []string, userDN string) s
 	logger.Debug(fmt.Sprintf("User DN: %s, isTeacherOU: %v, isPeopleOU: %v", userDN, isTeacherOU, isPeopleOU))
 
 	for _, memberOf := range memberOfValues {
-		if !strings.Contains(memberOf, "ou=groups,dc=it-college,dc=ru") {
+		memberOfLower := strings.ToLower(memberOf)
+		if !strings.Contains(memberOfLower, "ou=groups,dc=it-college,dc=ru") {
 			continue
 		}
 
@@ -299,8 +300,8 @@ func (u *UserRepository) determineRole(memberOfValues []string, userDN string) s
 			return "teacher"
 		}
 
-		if isPeopleOU && strings.HasPrefix(cn, "ИТ") {
-			logger.Debug(fmt.Sprintf("User is in ou=people and member of academic group %s, role: student", cn))
+		if isPeopleOU && (cn == "students" || strings.HasPrefix(cn, "ИТ")) {
+			logger.Debug(fmt.Sprintf("User is in ou=people and member of group %s, role: student", cn))
 			return "student"
 		}
 	}
