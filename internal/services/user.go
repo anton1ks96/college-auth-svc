@@ -286,7 +286,7 @@ func (u *UserService) ValidateAccessToken(ctx context.Context, accessToken strin
 }
 
 func (u *UserService) generateTokens(user *domain.User) (Tokens, error) {
-	newAccess, err := u.tokenManager.NewAccessToken(user.ID, user.Username, user.Role)
+	newAccess, err := u.tokenManager.NewAccessToken(user.ID, user.Username, user.Role, "", "", "", "")
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to generate access token for user %s: %w", user.ID, err))
 		return Tokens{}, fmt.Errorf("failed to generate access token: %w", err)

@@ -17,6 +17,8 @@ type AppUserInfo struct {
 	Role          string `json:"role"`
 	AcademicGroup string `json:"academic_group,omitempty"`
 	Profile       string `json:"profile,omitempty"`
+	Subgroup      string `json:"subgroup,omitempty"`
+	EnglishGroup  string `json:"english_group,omitempty"`
 }
 
 type AppSignInResponse struct {

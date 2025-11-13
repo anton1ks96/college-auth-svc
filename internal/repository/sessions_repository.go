@@ -150,5 +150,7 @@ func (s *SessionsRepository) GetExtendedUserByID(ctx context.Context, userID str
 		Role:          session.Role,
 		AcademicGroup: session.AcademicGroup,
 		Profile:       session.Profile,
+		Subgroup:      session.Subgroup,
+		EnglishGroup:  session.EnglishGroup,
 	}, nil
 }

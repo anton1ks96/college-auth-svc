@@ -21,7 +21,7 @@ func NewManager(cfg *config.Config) *Manager {
 	}
 }
 
-func (m *Manager) NewAccessToken(userId, userName, role string) (string, error) {
+func (m *Manager) NewAccessToken(userId, userName, role, academicGroup, profile, subgroup, englishGroup string) (string, error) {
 	if userId == "" || userName == "" || role == "" {
 		return "", errors.New("userId, userName and role cannot be empty")
 	}
@@ -32,13 +32,28 @@ func (m *Manager) NewAccessToken(userId, userName, role string) (string, error) 
 		return "", err
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	claims := jwt.MapClaims{
 		"user_id":  userId,
 		"username": userName,
 		"role":     role,
 		"exp":      time.Now().Add(ttl).Unix(),
 		"iat":      time.Now().Unix(),
-	})
+	}
+
+	if academicGroup != "" {
+		claims["academic_group"] = academicGroup
+	}
+	if profile != "" {
+		claims["profile"] = profile
+	}
+	if subgroup != "" {
+		claims["subgroup"] = subgroup
+	}
+	if englishGroup != "" {
+		claims["english_group"] = englishGroup
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	tokenString, err := token.SignedString([]byte(m.cfg.JWT.SigningKey))
 	if err != nil {
@@ -163,4 +178,34 @@ func (m *Manager) ValidateRefreshToken(tokenString string) error {
 	}
 
 	return nil
+}
+
+func (m *Manager) GetAllClaims(tokenString string) (map[string]interface{}, error) {
+	if tokenString == "" {
+		return nil, errors.New("token cannot be empty")
+	}
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(m.cfg.JWT.SigningKey), nil
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+
+	if err != nil {
+		logger.Error(errors.New("failed to parse token: " + err.Error()))
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("invalid claims format")
+	}
+
+	result := make(map[string]interface{})
+	for key, value := range claims {
+		result[key] = value
+	}
+
+	return result, nil
 }

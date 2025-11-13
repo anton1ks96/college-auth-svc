@@ -14,6 +14,8 @@ func TestGetUserGroups(t *testing.T) {
 	userPass := os.Getenv("TEST_USER_PASS")
 	wantGroup := "ИТ24-11"
 	wantProfile := "BE"
+	wantSubgroup := ""
+	wantEnglishGroup := "B1.21"
 
 	if ldapURL == "" || userID == "" || userPass == "" {
 		t.Skip("LDAP_URL, TEST_USER_ID и TEST_USER_PASS должны быть заданы через переменные окружения (export)")
@@ -27,18 +29,27 @@ func TestGetUserGroups(t *testing.T) {
 
 	repo := NewUserRepository(cfg)
 
-	group, profile, err := repo.GetUserGroups(context.Background(), userID, userPass)
+	userGroups, err := repo.GetUserGroups(context.Background(), userID, userPass)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	t.Logf("got group=%q, profile=%q", group, profile)
+	t.Logf("got group=%q, profile=%q, subgroup=%q, english=%q",
+		userGroups.AcademicGroup, userGroups.Profile, userGroups.Subgroup, userGroups.EnglishGroup)
 
-	if group != wantGroup {
-		t.Errorf("expected group %q, got %q", wantGroup, group)
+	if userGroups.AcademicGroup != wantGroup {
+		t.Errorf("expected group %q, got %q", wantGroup, userGroups.AcademicGroup)
 	}
 
-	if profile != wantProfile {
-		t.Errorf("expected profile %q, got %q", wantProfile, profile)
+	if userGroups.Profile != wantProfile {
+		t.Errorf("expected profile %q, got %q", wantProfile, userGroups.Profile)
+	}
+
+	if userGroups.Subgroup != wantSubgroup {
+		t.Errorf("expected subgroup %q, got %q", wantSubgroup, userGroups.Subgroup)
+	}
+
+	if userGroups.EnglishGroup != wantEnglishGroup {
+		t.Errorf("expected group %q, got %q", wantEnglishGroup, userGroups.EnglishGroup)
 	}
 }

@@ -58,10 +58,13 @@ func (a *AppUserService) SignIn(ctx context.Context, input SignInInput) (Tokens,
 			Role:          "student",
 			AcademicGroup: "ИТ25-11",
 			Profile:       "BE",
+			Subgroup:      "Подгр1",
+			EnglishGroup:  "B1.21",
 		}
 		user = &domain.User{
 			ID:       userExtended.ID,
 			Username: userExtended.Username,
+			Role:     userExtended.Role,
 		}
 	} else {
 		if err := a.repos.UserRepo.Authentication(ctx, input.UserID, input.Password); err != nil {
@@ -75,24 +78,29 @@ func (a *AppUserService) SignIn(ctx context.Context, input SignInInput) (Tokens,
 			return Tokens{}, nil, fmt.Errorf("find user data failed: %w", err)
 		}
 
-		var academicGroup, profile string
+		var userGroups *domain.UserGroups
 		if user.Role != "teacher" && user.Role != "admin" {
-			academicGroup, profile, err = a.repos.UserRepo.GetUserGroups(ctx, input.UserID, input.Password)
+			userGroups, err = a.repos.UserRepo.GetUserGroups(ctx, input.UserID, input.Password)
 			if err != nil {
 				logger.Warn(fmt.Sprintf("failed to get groups for user %s: %v", input.UserID, err))
+				userGroups = &domain.UserGroups{}
 			}
+		} else {
+			userGroups = &domain.UserGroups{}
 		}
 
 		userExtended = &domain.UserExtended{
 			ID:            user.ID,
 			Username:      user.Username,
 			Role:          user.Role,
-			AcademicGroup: academicGroup,
-			Profile:       profile,
+			AcademicGroup: userGroups.AcademicGroup,
+			Profile:       userGroups.Profile,
+			Subgroup:      userGroups.Subgroup,
+			EnglishGroup:  userGroups.EnglishGroup,
 		}
 	}
 
-	tokens, err := a.generateTokens(user)
+	tokens, err := a.generateTokens(userExtended)
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to generate tokens for user %s: %w", input.UserID, err))
 		return Tokens{}, nil, fmt.Errorf("failed to generate tokens: %w", err)
@@ -107,10 +115,12 @@ func (a *AppUserService) SignIn(ctx context.Context, input SignInInput) (Tokens,
 	session := domain.RefreshSession{
 		JTI:           jti,
 		UserID:        input.UserID,
-		Username:      user.Username,
+		Username:      userExtended.Username,
 		Role:          userExtended.Role,
 		AcademicGroup: userExtended.AcademicGroup,
 		Profile:       userExtended.Profile,
+		Subgroup:      userExtended.Subgroup,
+		EnglishGroup:  userExtended.EnglishGroup,
 		ExpiresAt:     time.Now().Add(a.refreshTokenTTL),
 		CreatedAt:     time.Now(),
 	}
@@ -211,6 +221,8 @@ func (a *AppUserService) RefreshToken(ctx context.Context, refreshToken string) 
 		Role:          userExtended.Role,
 		AcademicGroup: userExtended.AcademicGroup,
 		Profile:       userExtended.Profile,
+		Subgroup:      userExtended.Subgroup,
+		EnglishGroup:  userExtended.EnglishGroup,
 		ExpiresAt:     time.Now().Add(a.refreshTokenTTL),
 		CreatedAt:     time.Now(),
 	}
@@ -239,16 +251,32 @@ func (a *AppUserService) ValidateAccessToken(ctx context.Context, accessToken st
 		return nil, fmt.Errorf("invalid token")
 	}
 
-	userID, err := a.tokenManager.ExtractClaim(accessToken, "user_id")
+	claims, err := a.tokenManager.GetAllClaims(accessToken)
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to extract user_id from token: %w", err))
-		return nil, err
+		logger.Error(fmt.Errorf("failed to extract claims from token: %w", err))
+		return nil, fmt.Errorf("invalid token claims")
 	}
 
-	userExtended, err := a.repos.SessionRepo.GetExtendedUserByID(ctx, userID)
-	if err != nil {
-		logger.Error(fmt.Errorf("failed to get extended user data from session for ID %s: %w", userID, err))
-		return nil, fmt.Errorf("failed to get user data: %w", err)
+	userID, ok := claims["user_id"].(string)
+	if !ok {
+		return nil, fmt.Errorf("user_id claim missing or invalid")
+	}
+
+	username, _ := claims["username"].(string)
+	role, _ := claims["role"].(string)
+	academicGroup, _ := claims["academic_group"].(string)
+	profile, _ := claims["profile"].(string)
+	subgroup, _ := claims["subgroup"].(string)
+	englishGroup, _ := claims["english_group"].(string)
+
+	userExtended := &domain.UserExtended{
+		ID:            userID,
+		Username:      username,
+		Role:          role,
+		AcademicGroup: academicGroup,
+		Profile:       profile,
+		Subgroup:      subgroup,
+		EnglishGroup:  englishGroup,
 	}
 
 	return userExtended, nil
@@ -298,31 +326,41 @@ func (a *AppUserService) GetAccessToken(ctx context.Context, refreshToken string
 		return "", nil, fmt.Errorf("failed to get user data: %w", err)
 	}
 
-	user := &domain.User{
-		ID:       userExtended.ID,
-		Username: userExtended.Username,
-		Role:     userExtended.Role,
-	}
-
-	accessToken, err := a.tokenManager.NewAccessToken(user.ID, user.Username, user.Role)
+	accessToken, err := a.tokenManager.NewAccessToken(
+		userExtended.ID,
+		userExtended.Username,
+		userExtended.Role,
+		userExtended.AcademicGroup,
+		userExtended.Profile,
+		userExtended.Subgroup,
+		userExtended.EnglishGroup,
+	)
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to generate access token for user %s: %w", user.ID, err))
+		logger.Error(fmt.Errorf("failed to generate access token for user %s: %w", userExtended.ID, err))
 		return "", nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
 	return accessToken, userExtended, nil
 }
 
-func (a *AppUserService) generateTokens(user *domain.User) (Tokens, error) {
-	newAccess, err := a.tokenManager.NewAccessToken(user.ID, user.Username, user.Role)
+func (a *AppUserService) generateTokens(userExtended *domain.UserExtended) (Tokens, error) {
+	newAccess, err := a.tokenManager.NewAccessToken(
+		userExtended.ID,
+		userExtended.Username,
+		userExtended.Role,
+		userExtended.AcademicGroup,
+		userExtended.Profile,
+		userExtended.Subgroup,
+		userExtended.EnglishGroup,
+	)
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to generate access token for user %s: %w", user.ID, err))
+		logger.Error(fmt.Errorf("failed to generate access token for user %s: %w", userExtended.ID, err))
 		return Tokens{}, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	newRefresh, err := a.tokenManager.NewRefreshToken(user.ID)
+	newRefresh, err := a.tokenManager.NewRefreshToken(userExtended.ID)
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to generate refresh token for user %s: %w", user.ID, err))
+		logger.Error(fmt.Errorf("failed to generate refresh token for user %s: %w", userExtended.ID, err))
 		return Tokens{}, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 

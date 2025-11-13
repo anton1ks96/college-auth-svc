@@ -58,6 +58,8 @@ func (h *Handler) appSignIn(c *gin.Context) {
 			Role:          user.Role,
 			AcademicGroup: user.AcademicGroup,
 			Profile:       user.Profile,
+			Subgroup:      user.Subgroup,
+			EnglishGroup:  user.EnglishGroup,
 		},
 	}
 
@@ -123,6 +125,8 @@ func (h *Handler) appGetAccess(c *gin.Context) {
 			Role:          user.Role,
 			AcademicGroup: user.AcademicGroup,
 			Profile:       user.Profile,
+			Subgroup:      user.Subgroup,
+			EnglishGroup:  user.EnglishGroup,
 		},
 	}
 
@@ -205,6 +209,8 @@ func (h *Handler) appValidateToken(c *gin.Context) {
 			Role:          user.Role,
 			AcademicGroup: user.AcademicGroup,
 			Profile:       user.Profile,
+			Subgroup:      user.Subgroup,
+			EnglishGroup:  user.EnglishGroup,
 		},
 	}
 
