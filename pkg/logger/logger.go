@@ -22,7 +22,7 @@ func init() {
 		Caller().
 		Logger()
 
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 }
 
 func Debug(msg string) {

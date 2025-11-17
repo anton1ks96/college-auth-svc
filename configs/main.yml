@@ -10,8 +10,3 @@ app:
 jwt:
   accessTokenTTL: 60m
   refreshTokenTTL: 720h
-
-limiter:
-  rps: 4
-  burst: 10
-  ttl: 10m
