@@ -43,9 +43,9 @@ func (h *Handler) Init(api *gin.RouterGroup) {
 		{
 			app.POST("/signin", h.appSignIn)
 			app.POST("/signout", h.appSignOut)
-			app.POST("/refresh", h.appRefreshTokens)
+			app.POST("/refresh", h.appRefreshToken)
 			app.POST("/validate", h.appValidateToken)
-			app.GET("/user", h.appUserInfo)
+			app.POST("/access", h.appGetAccess)
 		}
 
 		search := v1.Group("/search")

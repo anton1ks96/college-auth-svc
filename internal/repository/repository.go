@@ -10,7 +10,7 @@ import (
 type UserLDAPRepository interface {
 	Authentication(ctx context.Context, userID, userPass string) error
 	GetByID(ctx context.Context, userID, userPass string) (*domain.User, error)
-	GetUserGroups(ctx context.Context, userID, userPass string) (academicGroup, profile string, err error)
+	GetUserGroups(ctx context.Context, userID, userPass string) (*domain.UserGroups, error)
 }
 
 // SessionMongoRepository manages refresh tokens and user sessions in MongoDB

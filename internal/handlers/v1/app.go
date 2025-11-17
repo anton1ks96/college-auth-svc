@@ -40,16 +40,26 @@ func (h *Handler) appSignIn(c *gin.Context) {
 		return
 	}
 
+	refreshTTL, err := time.ParseDuration(h.cfg.JWT.RefreshTokenTTL)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "server configuration error",
+		})
+	}
+
 	response := dto.AppSignInResponse{
-		AccessToken:  tokens.AccessToken,
-		RefreshToken: tokens.RefreshToken,
-		ExpiresIn:    int(accessTTL.Seconds()),
+		AccessToken:      tokens.AccessToken,
+		RefreshToken:     tokens.RefreshToken,
+		AccessExpiresIn:  int(accessTTL.Seconds()),
+		RefreshExpiresIn: int(refreshTTL.Seconds()),
 		User: dto.AppUserInfo{
 			ID:            user.ID,
 			Username:      user.Username,
 			Role:          user.Role,
 			AcademicGroup: user.AcademicGroup,
 			Profile:       user.Profile,
+			Subgroup:      user.Subgroup,
+			EnglishGroup:  user.EnglishGroup,
 		},
 	}
 
@@ -79,8 +89,8 @@ func (h *Handler) appSignOut(c *gin.Context) {
 	})
 }
 
-func (h *Handler) appRefreshTokens(c *gin.Context) {
-	var req dto.AppRefreshRequest
+func (h *Handler) appGetAccess(c *gin.Context) {
+	var req dto.AppGetAccessRequest
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "invalid request format",
@@ -89,10 +99,10 @@ func (h *Handler) appRefreshTokens(c *gin.Context) {
 		return
 	}
 
-	tokens, err := h.services.AppUserService.RefreshTokens(c.Request.Context(), req.RefreshToken)
+	accessToken, user, err := h.services.AppUserService.GetAccessToken(c.Request.Context(), req.RefreshToken)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":   "failed to refresh tokens",
+			"error":   "failed to get access token",
 			"details": err.Error(),
 		})
 		return
@@ -106,10 +116,53 @@ func (h *Handler) appRefreshTokens(c *gin.Context) {
 		return
 	}
 
+	response := dto.AppGetAccessTokenResponse{
+		AccessToken: accessToken,
+		ExpiresIn:   int(accessTTL.Seconds()),
+		User: dto.AppUserInfo{
+			ID:            user.ID,
+			Username:      user.Username,
+			Role:          user.Role,
+			AcademicGroup: user.AcademicGroup,
+			Profile:       user.Profile,
+			Subgroup:      user.Subgroup,
+			EnglishGroup:  user.EnglishGroup,
+		},
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) appRefreshToken(c *gin.Context) {
+	var req dto.AppRefreshRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request format",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	newRefreshToken, err := h.services.AppUserService.RefreshToken(c.Request.Context(), req.RefreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "failed to refresh token",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	refreshTTL, err := time.ParseDuration(h.cfg.JWT.RefreshTokenTTL)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "server configuration error",
+		})
+		return
+	}
+
 	response := dto.AppRefreshResponse{
-		AccessToken:  tokens.AccessToken,
-		RefreshToken: tokens.RefreshToken,
-		ExpiresIn:    int(accessTTL.Seconds()),
+		RefreshToken: newRefreshToken,
+		ExpiresIn:    int(refreshTTL.Seconds()),
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -156,53 +209,10 @@ func (h *Handler) appValidateToken(c *gin.Context) {
 			Role:          user.Role,
 			AcademicGroup: user.AcademicGroup,
 			Profile:       user.Profile,
+			Subgroup:      user.Subgroup,
+			EnglishGroup:  user.EnglishGroup,
 		},
 	}
 
 	c.JSON(http.StatusOK, response)
-}
-
-func (h *Handler) appUserInfo(c *gin.Context) {
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "authorization header required",
-		})
-		return
-	}
-
-	if !strings.HasPrefix(authHeader, "Bearer ") {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid authorization header format",
-		})
-		return
-	}
-
-	token := strings.TrimPrefix(authHeader, "Bearer ")
-	if token == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "token is empty",
-		})
-		return
-	}
-
-	user, err := h.services.AppUserService.ValidateAccessToken(c.Request.Context(), token)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "invalid or expired token",
-		})
-		return
-	}
-
-	userInfo := dto.AppUserInfo{
-		ID:            user.ID,
-		Username:      user.Username,
-		Role:          user.Role,
-		AcademicGroup: user.AcademicGroup,
-		Profile:       user.Profile,
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"user": userInfo,
-	})
 }

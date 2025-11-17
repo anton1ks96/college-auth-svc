@@ -139,16 +139,16 @@ func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (
 	return user, nil
 }
 
-func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass string) (academicGroup, profile string, err error) {
+func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass string) (*domain.UserGroups, error) {
 	if ctx.Err() != nil {
 		logger.Error(fmt.Errorf("context cancelled during group retrieval for user %s: %w", userID, ctx.Err()))
-		return "", "", ctx.Err()
+		return nil, ctx.Err()
 	}
 
 	l, err := ldap.DialURL(u.cfg.LDAP.URL)
 	if err != nil {
 		logger.Error(fmt.Errorf("failed to connect to LDAP server %s for group lookup: %w", u.cfg.LDAP.URL, err))
-		return "", "", fmt.Errorf("LDAP connection failed")
+		return nil, fmt.Errorf("LDAP connection failed")
 	}
 	defer l.Close()
 
@@ -186,15 +186,17 @@ func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass str
 	sr, err := l.Search(searchRequest)
 	if err != nil {
 		logger.Error(fmt.Errorf("LDAP group search failed for user %s: %w", userID, err))
-		return "", "", fmt.Errorf("group search failed")
+		return nil, fmt.Errorf("group search failed")
 	}
+
+	userGroups := &domain.UserGroups{}
 
 	for _, entry := range sr.Entries {
 		cn := entry.GetAttributeValue("cn")
 		description := entry.GetAttributeValue("description")
 
 		if description == "Академическая группа" && strings.HasPrefix(cn, "ИТ") {
-			academicGroup = cn
+			userGroups.AcademicGroup = cn
 			logger.Debug(fmt.Sprintf("found academic group for user %s: %s", userID, cn))
 		}
 
@@ -204,17 +206,27 @@ func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass str
 				"CD": true, "GD": true, "SA": true,
 			}
 			if validProfiles[cn] {
-				profile = cn
+				userGroups.Profile = cn
 				logger.Debug(fmt.Sprintf("found profile for user %s: %s", userID, cn))
 			}
 		}
+
+		if description == "Подгруппа" && (cn == "Подгр1" || cn == "Подгр2") {
+			userGroups.Subgroup = cn
+			logger.Debug(fmt.Sprintf("found subgroup for user %s: %s", userID, cn))
+		}
+
+		if description == "Английский язык подгруппа" {
+			userGroups.EnglishGroup = cn
+			logger.Debug(fmt.Sprintf("found english group for user %s: %s", userID, cn))
+		}
 	}
 
-	if !strings.HasPrefix(userID, "t") && academicGroup == "" {
+	if !strings.HasPrefix(userID, "t") && userGroups.AcademicGroup == "" {
 		logger.Warn(fmt.Sprintf("no academic group found for student %s", userID))
 	}
 
-	return academicGroup, profile, nil
+	return userGroups, nil
 }
 
 func (u *UserRepository) findUserDN(l *ldap.Conn, userID string) (string, error) {

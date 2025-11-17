@@ -8,5 +8,5 @@ app:
   test: false
 
 jwt:
-  accessTokenTTL: 72h
+  accessTokenTTL: 60m
   refreshTokenTTL: 720h
