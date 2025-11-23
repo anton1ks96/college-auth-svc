@@ -161,7 +161,7 @@ func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass str
 
 	if err := l.Bind(userDN, userPass); err != nil {
 		logger.Error(fmt.Errorf("failed to bind for group lookup with DN %s: %w", userDN, err))
-		return "", "", fmt.Errorf("authentication failed")
+		return nil, fmt.Errorf("authentication failed")
 	}
 
 	searchFilter := fmt.Sprintf(
