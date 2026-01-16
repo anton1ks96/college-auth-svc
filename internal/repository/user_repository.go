@@ -172,7 +172,7 @@ func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass str
 	)
 
 	searchRequest := ldap.NewSearchRequest(
-		"ou=groups,dc=it-college,dc=ru",
+		"ou=Current,dc=it-college,dc=ru",
 		ldap.ScopeWholeSubtree,
 		ldap.NeverDerefAliases,
 		0,
@@ -284,7 +284,7 @@ func (u *UserRepository) determineRole(memberOfValues []string, userDN string) s
 
 	for _, memberOf := range memberOfValues {
 		memberOfLower := strings.ToLower(memberOf)
-		if !strings.Contains(memberOfLower, "ou=groups,dc=it-college,dc=ru") {
+		if !strings.Contains(memberOfLower, "ou=Current,dc=it-college,dc=ru") {
 			continue
 		}
 
