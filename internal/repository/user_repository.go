@@ -195,7 +195,7 @@ func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass str
 		cn := entry.GetAttributeValue("cn")
 		description := entry.GetAttributeValue("description")
 
-		if description == "Академическая группа" && strings.HasPrefix(cn, "ИТ") {
+		if description == "Группа" && strings.HasPrefix(cn, "ИТ") {
 			userGroups.AcademicGroup = cn
 			logger.Debug(fmt.Sprintf("found academic group for user %s: %s", userID, cn))
 		}
@@ -284,7 +284,7 @@ func (u *UserRepository) determineRole(memberOfValues []string, userDN string) s
 
 	for _, memberOf := range memberOfValues {
 		memberOfLower := strings.ToLower(memberOf)
-		if !strings.Contains(memberOfLower, "ou=Current,dc=it-college,dc=ru") {
+		if !strings.Contains(memberOfLower, "ou=current,dc=it-college,dc=ru") {
 			continue
 		}
 
