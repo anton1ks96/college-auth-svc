@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -17,15 +19,25 @@ type UserService struct {
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
 	cfg             *config.App
+	adminPassword   string
 }
 
 func NewUserService(tm auth.Manager, repos Repositories, accessTTL time.Duration, refreshTTL time.Duration, appCfg *config.App) *UserService {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		logger.Fatal(fmt.Errorf("failed to generate admin password: %w", err))
+	}
+	adminPass := hex.EncodeToString(b)
+
+	logger.Info(fmt.Sprintf("Built-in admin password: %s", adminPass))
+
 	return &UserService{
 		tokenManager:    &tm,
 		repos:           repos,
 		accessTokenTTL:  accessTTL,
 		refreshTokenTTL: refreshTTL,
 		cfg:             appCfg,
+		adminPassword:   adminPass,
 	}
 }
 
@@ -51,7 +63,13 @@ func (u *UserService) SignIn(ctx context.Context, input SignInInput) (Tokens, *d
 	var user *domain.User
 	var err error
 
-	if u.cfg.Test {
+	if input.UserID == "admin" && input.Password == u.adminPassword {
+		user = &domain.User{
+			ID:       "admin",
+			Username: "Администратор",
+			Role:     "admin",
+		}
+	} else if u.cfg.Test {
 		switch input.UserID {
 		case "admin":
 			user = &domain.User{
