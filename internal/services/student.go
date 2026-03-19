@@ -58,7 +58,7 @@ func (s *StudentServiceImpl) SearchStudents(ctx context.Context, query string) (
 	)
 
 	searchRequest := ldap.NewSearchRequest(
-		"ou=people,dc=it-college,dc=ru",
+		"ou=People,dc=it-college,dc=ru",
 		ldap.ScopeWholeSubtree,
 		ldap.NeverDerefAliases,
 		50,

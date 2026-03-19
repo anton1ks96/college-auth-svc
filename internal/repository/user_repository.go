@@ -71,9 +71,9 @@ func (u *UserRepository) GetByID(ctx context.Context, userID, userPass string) (
 
 	var baseDN string
 	if !strings.HasPrefix(userID, "t") {
-		baseDN = "ou=people,dc=it-college,dc=ru"
+		baseDN = "ou=People,dc=it-college,dc=ru"
 	} else {
-		baseDN = "ou=people,ou=Teachers,dc=it-college,dc=ru"
+		baseDN = "ou=Teachers,dc=it-college,dc=ru"
 	}
 
 	if err := l.Bind(dn, userPass); err != nil {
@@ -154,9 +154,9 @@ func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass str
 
 	var userDN string
 	if !strings.HasPrefix(userID, "t") {
-		userDN = fmt.Sprintf("uid=%s,ou=people,dc=it-college,dc=ru", userID)
+		userDN = fmt.Sprintf("uid=%s,ou=People,dc=it-college,dc=ru", userID)
 	} else {
-		userDN = fmt.Sprintf("uid=%s,ou=people,ou=Teachers,dc=it-college,dc=ru", userID)
+		userDN = fmt.Sprintf("uid=%s,ou=Teachers,dc=it-college,dc=ru", userID)
 	}
 
 	if err := l.Bind(userDN, userPass); err != nil {
@@ -232,9 +232,9 @@ func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass str
 func (u *UserRepository) findUserDN(l *ldap.Conn, userID string) (string, error) {
 	var baseDN string
 	if !strings.HasPrefix(userID, "t") {
-		baseDN = "ou=people,dc=it-college,dc=ru"
+		baseDN = "ou=People,dc=it-college,dc=ru"
 	} else {
-		baseDN = "ou=people,ou=Teachers,dc=it-college,dc=ru"
+		baseDN = "ou=Teachers,dc=it-college,dc=ru"
 	}
 
 	err := l.UnauthenticatedBind("")
