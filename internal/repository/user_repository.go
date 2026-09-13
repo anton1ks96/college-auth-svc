@@ -3,12 +3,22 @@ package repository
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/anton1ks96/college-auth-svc/internal/config"
 	"github.com/anton1ks96/college-auth-svc/internal/domain"
 	"github.com/anton1ks96/college-auth-svc/pkg/logger"
 	"github.com/go-ldap/ldap/v3"
+)
+
+var (
+	academicGroupPattern = regexp.MustCompile(`^ИТ\d{2}-\d{2}$`)
+	englishGroupPattern  = regexp.MustCompile(`^[ABC]\d\.\d{2}$`)
+	validProfiles        = map[string]bool{
+		"BE": true, "FE": true, "PM": true,
+		"CD": true, "GD": true, "SA": true,
+	}
 )
 
 type UserRepository struct {
@@ -179,7 +189,7 @@ func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass str
 		0,
 		false,
 		searchFilter,
-		[]string{"cn", "description"},
+		[]string{"cn"},
 		nil,
 	)
 
@@ -193,30 +203,18 @@ func (u *UserRepository) GetUserGroups(ctx context.Context, userID, userPass str
 
 	for _, entry := range sr.Entries {
 		cn := entry.GetAttributeValue("cn")
-		description := entry.GetAttributeValue("description")
 
-		if description == "Группа" && strings.HasPrefix(cn, "ИТ") {
+		switch {
+		case academicGroupPattern.MatchString(cn):
 			userGroups.AcademicGroup = cn
 			logger.Debug(fmt.Sprintf("found academic group for user %s: %s", userID, cn))
-		}
-
-		if description == "Профиль" {
-			validProfiles := map[string]bool{
-				"BE": true, "FE": true, "PM": true,
-				"CD": true, "GD": true, "SA": true,
-			}
-			if validProfiles[cn] {
-				userGroups.Profile = cn
-				logger.Debug(fmt.Sprintf("found profile for user %s: %s", userID, cn))
-			}
-		}
-
-		if description == "Подгруппа" && (cn == "Подгр1" || cn == "Подгр2") {
+		case validProfiles[cn]:
+			userGroups.Profile = cn
+			logger.Debug(fmt.Sprintf("found profile for user %s: %s", userID, cn))
+		case cn == "Подгр1" || cn == "Подгр2":
 			userGroups.Subgroup = cn
 			logger.Debug(fmt.Sprintf("found subgroup for user %s: %s", userID, cn))
-		}
-
-		if description == "Английский язык подгруппа" {
+		case englishGroupPattern.MatchString(cn):
 			userGroups.EnglishGroup = cn
 			logger.Debug(fmt.Sprintf("found english group for user %s: %s", userID, cn))
 		}
