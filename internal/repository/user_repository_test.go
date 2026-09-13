@@ -15,7 +15,7 @@ func TestGetUserGroups(t *testing.T) {
 	wantGroup := "ИТ24-11"
 	wantProfile := "BE"
 	wantSubgroup := ""
-	wantEnglishGroup := "B1.21"
+	wantEnglishGroup := "B1.31"
 
 	if ldapURL == "" || userID == "" || userPass == "" {
 		t.Skip("LDAP_URL, TEST_USER_ID и TEST_USER_PASS должны быть заданы через переменные окружения (export)")
